@@ -1,0 +1,6 @@
+calib_events/*
+calib_results/*
+sidex20_calibration/*
+*.mat
+*.txt
+*.TXT
