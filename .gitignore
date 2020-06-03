@@ -4,3 +4,5 @@ sidex20_calibration/*
 *.mat
 *.txt
 *.TXT
+*.fig
+*.png
