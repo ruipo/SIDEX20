@@ -211,8 +211,9 @@ t = t+start_time; % Calibration Data epoch time
 figure %(for geophone 1)
 plot(t,data(:,1))
 hold on
-plot(t,data(:,2))
-plot(t,data(:,3))
+plot(t,data(:,4))
+plot(t,data(:,7))
+plot(t,data(:,10))
 plot(epochtime_event,zeros(length(epochtime_event),1),'*')
 
 %% Event detection in z-axis

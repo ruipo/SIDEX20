@@ -11,6 +11,6 @@ Y_HiV = movmean(vz.*vy,k);
 X_HiV = movmean(vz.*vx,k);
 
 
-B = Y_HiV\-X_HiV;
+B = -Y_HiV\X_HiV;
 X_est = [-200:1:200];
 Y_est = X_est*B;
