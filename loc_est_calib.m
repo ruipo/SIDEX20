@@ -312,10 +312,10 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
         
         pause
     end
-    
-    if error(ccount) < 0.1
-        break
-    end
+% STOP EARLY TO SAVE COMPUTATION TIME    
+%     if error(ccount) < 0.1
+%         break
+%     end
     
 end
 
