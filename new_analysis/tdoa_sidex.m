@@ -76,6 +76,23 @@ if strcmp(method,'hilbert')
 end
 
 % max method
+if strcmp(method,'hilbert_max')
+   
+    for i = 1:num_chn
+        for ii = i:num_chn
+
+            [~,lag1] = max(abs(hilbert(zevent(i,:))));
+            [~,lag2] = max(abs(hilbert(zevent(ii,:))));
+            
+            tdoa_mat(i,ii) = lag1-lag2;
+            tdoa_mat(ii,i) = -(lag1-lag2);
+
+        end
+    end
+end
+
+
+% max method
 if strcmp(method,'max')
    
     for i = 1:num_chn
@@ -142,6 +159,35 @@ if strcmp(method,'envelope')
             [~,loc] = max(corr);
             tdoa_mat(i,ii) = lags(loc);
             tdoa_mat(ii,i) = -lags(loc);
+        end
+    end
+end
+
+%xcorr method
+if strcmp(method,'xcorr')
+
+    for i = 1:num_chn
+        for ii = i:num_chn
+
+            [corr,lags] = xcorr(zevent(i,:),zevent(ii,:));
+
+            [~,loc] = max(corr);
+            tdoa_mat(i,ii) = lags(loc);
+            tdoa_mat(ii,i) = -lags(loc);
+        end
+    end
+end
+
+%xcorr method
+if strcmp(method,'finddelay')
+
+    for i = 1:num_chn
+        for ii = i:num_chn
+
+            lags = finddelay(zevent(i,:),zevent(ii,:));
+
+            tdoa_mat(i,ii) = -lags;
+            tdoa_mat(ii,i) = lags;
         end
     end
 end

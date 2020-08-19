@@ -48,7 +48,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     
     c0 = clist(ccount); %set propagation speed
     
-    [tdoa_mat,~,~] = tdoa_sidex(zdata,xdata,ydata,start_sample,end_sample,FS,'hilbert'); %calculate tdoa matrix based on the propagation speed. 
+    [tdoa_mat,~,~] = tdoa_sidex(zdata,xdata,ydata,start_sample,end_sample,FS,'finddelay'); %calculate tdoa matrix based on the propagation speed. 
     
     %------------------------------------------------------------------------------------------------------------------------------------------------%
     %find midpoints, focal radii, and rotation angles of all receiver pairs
@@ -114,6 +114,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
                     yL = ylim;
                     line([0 0], yL,'color','black');
                     line(xL, [0 0],'color','black');
+                    pause
                     grid on
                 end
 
@@ -168,6 +169,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
                     yL = ylim;
                     line([0 0], yL,'color','black');
                     line(xL, [0 0],'color','black');
+                    pause
                     grid on
                 end
 
@@ -256,13 +258,13 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     if ~isempty(x_intlist) && ~isempty(y_intlist)
         
         figure
-        x_hist = histfit(real(x_intlist),round(length(x_intlist)/2),'kernel'); %fit a kernel distribution to histogram of x-intersection values
+        x_hist = histfit(real(x_intlist((x_intlist<350 & x_intlist>-350))),round(length(x_intlist)/2),'kernel'); %fit a kernel distribution to histogram of x-intersection values
         [xpeaks,xloclist] = findpeaks(x_hist(2).YData); %find location of the peaks of the kernel distribution
         [~,lx] = max(xpeaks); %x-estimate is the location of tallest peak
         locx = xloclist(lx);
         
         figure
-        y_hist = histfit(real(y_intlist),round(length(y_intlist)/2),'kernel'); %fit a kernel distribution to histogram of y-intersection values
+        y_hist = histfit(real(y_intlist((y_intlist<350 & y_intlist>-350))),round(length(y_intlist)/2),'kernel'); %fit a kernel distribution to histogram of y-intersection values
         [ypeaks,yloclist] = findpeaks(y_hist(2).YData); %find location of the peaks of the kernel distribution
         [~,ly] = max(ypeaks);%y-estimate is the location of the tallest peak
         locy = yloclist(ly);

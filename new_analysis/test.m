@@ -4,8 +4,10 @@ f2 = 32;
 FS = 1000;
 
 bandfilt = designfilt('bandpassfir','FilterOrder',100,'CutoffFrequency1',f1,'CutoffFrequency2',f2,'SampleRate',FS);
-data_filt = filtfilt(bandfilt,data);
-
+data_filt1 = filtfilt(bandfilt,data);
+bandfilt = designfilt('bandpassfir','FilterOrder',100,'CutoffFrequency1',8,'CutoffFrequency2',16,'SampleRate',FS);
+data_filt2 = filtfilt(bandfilt,data);
+event_inds = xlsread('event_inds.xlsx',1,'B2:C189');
 
 figure
 plot(t,data_filt(:,1))
@@ -169,17 +171,94 @@ for ee = 1:188
 
     end
 end
+%% Event Beamform
+
+zevent = data(:,[1 4 7 10]);
+geophone_loc = [24.36 -36.64 0;-37.71 11.51 0;21.05 25.30 0;-7.71 -0.167 0];
+
+FS = 1000;
+elev = 0;
+az = 0:1:360;
+c = 201;
+f_range = [16 32];
+NFFT = 16;
+overlap = 0;
+weighting = 'uniform';
+
+
+ang_est_mat = zeros(1,length(event_inds));
+
+for i = 1
+    i 
+    for c= 100:300
+    ss = event_inds(i,1);
+    es = event_inds(i,2);
+    if isnan(ss) || isnan(es)
+        ang_est_mat(i) = NaN;
+    else
+        figure(1)
+        plot(geophone_loc(:,1),geophone_loc(:,2),'ro');
+        xlabel('X position (m)')
+        xlabel('Y position (m)')
+        xlim([-350 350]);
+        ylim([-150 350]);
+        xL = xlim;
+        yL = ylim;
+        line([0 0], yL,'color','black');
+        line(xL, [0 0],'color','black');
+        grid on
+        hold on
+        [eventx, eventy]= ll2xy(lat_event(i),long_event(i),mean(geophone_GPS(:,1)),mean(geophone_GPS(:,2)));
+        plot(eventx,eventy,'*')
+        deg = rad2deg(atan2(eventy,eventx));
+        if deg<0
+            ang_act = 360+deg;
+        else
+            ang_act = deg;
+        end
+
+        %try
+            window = hanning(es-ss+1);
+            [beamform_output,~,~] = beamform_3D(zevent(ss:es,:),geophone_loc,FS,elev,az,c,f_range,NFFT,window,overlap,weighting);
+            ang_list = squeeze(mean(mean(beamform_output,1),4));
+            [~,ind] = max(abs(ang_list));
+            ang_est = az(ind);
+            if (ang_est>90 && ang_est<=270)
+                xlist = -500:0;
+                ylist = xlist*tan(deg2rad(ang_est));
+                plot(xlist,ylist,'b')
+            else
+                xlist = 0:500;
+                ylist = xlist*tan(deg2rad(ang_est));
+                plot(xlist,ylist,'b')
+            end
+        %catch
+            %disp('Skipping this...')
+        %end
+
+        ang_est_mat(:,i) = ang_est;
+
+        disp(['ang estimate = ', num2str(ang_est), '.']);
+        disp(['ang actual = ', num2str(ang_act), '.']);
+
+    end
+    
+    pause;
+    clf;
+    end
+   
+end
 %% Event Locatization
 
-zevent = data_filt(:,[1 4 7 10]).';
-xevent = data_filt(:,[2 5 8 11]).';
-yevent = data_filt(:,[3 6 9 12]).'; 
+zevent = data_filt1(:,[1 4 7 10]).';
+xevent = data_filt1(:,[2 5 8 11]).';
+yevent = data_filt1(:,[3 6 9 12]).'; 
 geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
 
 FS = 1000;
-c_range = 50:1:1000;
+c_range = 342;
 N = 1000;
-plotting = 0;
+plotting = 1;
 
 figure(1)
 plot(geophone_loc(:,1),geophone_loc(:,2),'ro');
@@ -198,7 +277,7 @@ pos_est_mat = zeros(2,length(event_inds));
 c_est_mat = zeros(length(event_inds),1);
 error_mat = zeros(length(event_inds),1);
 
-parfor i = 1:188
+for i = 105
     i 
     
     ss = event_inds(i,1);
@@ -322,15 +401,15 @@ testf = testf(reindex);
 distfc = zeros(188,1);
 for i = 1:188
     [eventx, eventy]= ll2xy(lat_event(i),long_event(i),mean(geophone_GPS(:,1)),mean(geophone_GPS(:,2)));
-    distfc(i) = sqrt((eventx-mean(geophone_GPS(:,1))).^2 + (eventy-mean(geophone_GPS(:,2))).^2);
+    distfc(i) = sqrt((eventx).^2 + (eventy).^2);
 end
 figure
 semilogy(distfc,error_mat,'b.','MarkerSize',10)
 grid on
 set(gca,'fontsize',20)
 hold on
-%f=fit(distfc,error_mat,'poly3','Normalize','on','Robust','on');
-%plot(f)
+% f=fit(distfc(~isnan(error_mat)),error_mat(~isnan(error_mat)),'exp2');
+% plot(f)
 xlabel('Distance from Center Geophone (m)')
 ylabel('Error in Location Estimation (m)')
 title('Estimation Error vs. Distance from Center Geophone')
