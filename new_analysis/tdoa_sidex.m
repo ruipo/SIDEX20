@@ -31,12 +31,12 @@ yps_tdoa = zeros(num_chn,1);
 
 if end_sample > size(zdata,2)
     zevent = zdata(:,start_sample:end); 
-    xevent = xdata(:,start_sample:end);
-    yevent = ydata(:,start_sample:end);
+%     xevent = xdata(:,start_sample:end);
+%     yevent = ydata(:,start_sample:end);
 else
     zevent = zdata(:,start_sample:end_sample); 
-    xevent = xdata(:,start_sample:end_sample);
-    yevent = ydata(:,start_sample:end_sample);
+%     xevent = xdata(:,start_sample:end_sample);
+%     yevent = ydata(:,start_sample:end_sample);
 end
 
 % hilbert method
@@ -84,7 +84,7 @@ if strcmp(method,'hilbert_max')
             [~,lag1] = max(abs(hilbert(zevent(i,:))));
             [~,lag2] = max(abs(hilbert(zevent(ii,:))));
             
-            tdoa_mat(i,ii) = lag1-lag2;
+            tdoa_mat(i,ii) = (lag1-lag2);
             tdoa_mat(ii,i) = -(lag1-lag2);
 
         end
@@ -101,26 +101,26 @@ if strcmp(method,'max')
             [~,lag1] = max(abs(zevent(i,:)));
             [~,lag2] = max(abs(zevent(ii,:)));
 
-            if i == ii
-
-              [~,xlag] = max(abs(xevent(i,:)));
-              [~,ylag] = max(abs(yevent(i,:)));
-
-              if xlag-lag1 < 0
-                  xps_tdoa(i) = xlag-lag1;
-              else
-                  continue
-              end
-
-              if ylag-lag1 < 0
-                  yps_tdoa(i) = ylag-lag1;
-              else
-                  continue
-              end
-
-            end
+%             if i == ii
+% 
+%               [~,xlag] = max(abs(xevent(i,:)));
+%               [~,ylag] = max(abs(yevent(i,:)));
+% 
+%               if xlag-lag1 < 0
+%                   xps_tdoa(i) = xlag-lag1;
+%               else
+%                   continue
+%               end
+% 
+%               if ylag-lag1 < 0
+%                   yps_tdoa(i) = ylag-lag1;
+%               else
+%                   continue
+%               end
+% 
+%             end
             
-            tdoa_mat(i,ii) = lag1-lag2;
+            tdoa_mat(i,ii) = (lag1-lag2);
             tdoa_mat(ii,i) = -(lag1-lag2);
 
         end
@@ -135,26 +135,26 @@ if strcmp(method,'envelope')
 
             [corr,lags] = xcorr(envelope(abs(zevent(i,:)),55,'peaks'),envelope(abs(zevent(ii,:)),55,'peaks'));
 
-            if i == ii
-                [xcorrs,xlags] = xcorr(envelope(abs(xevent(i,:)),55,'peaks'),envelope(abs(zevent(ii,:)),55,'peaks'));
-                [ycorrs,ylags] = xcorr(envelope(abs(yevent(i,:)),55,'peaks'),envelope(abs(zevent(ii,:)),55,'peaks'));
-
-                xcorrs = xcorrs(xlags <= 1);
-                xlags = xlags(xlags <= 1);
-                ycorrs = ycorrs(xlags <= 1);
-                ylags = ylags(xlags <= 1);
-
-                [pks,locs] = findpeaks(xcorrs);
-                [~,locpx] = max(pks);
-
-                xps_tdoa(i) = xlags(locs(locpx));
-
-                [pks,locs] = findpeaks(ycorrs);
-                [~,locpy] = max(pks);
-
-                yps_tdoa(i) = ylags(locs(locpy));
-
-            end
+%             if i == ii
+%                 [xcorrs,xlags] = xcorr(envelope(abs(xevent(i,:)),55,'peaks'),envelope(abs(zevent(ii,:)),55,'peaks'));
+%                 [ycorrs,ylags] = xcorr(envelope(abs(yevent(i,:)),55,'peaks'),envelope(abs(zevent(ii,:)),55,'peaks'));
+% 
+%                 xcorrs = xcorrs(xlags <= 1);
+%                 xlags = xlags(xlags <= 1);
+%                 ycorrs = ycorrs(xlags <= 1);
+%                 ylags = ylags(xlags <= 1);
+% 
+%                 [pks,locs] = findpeaks(xcorrs);
+%                 [~,locpx] = max(pks);
+% 
+%                 xps_tdoa(i) = xlags(locs(locpx));
+% 
+%                 [pks,locs] = findpeaks(ycorrs);
+%                 [~,locpy] = max(pks);
+% 
+%                 yps_tdoa(i) = ylags(locs(locpy));
+% 
+%             end
 
             [~,loc] = max(corr);
             tdoa_mat(i,ii) = lags(loc);

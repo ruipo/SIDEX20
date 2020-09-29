@@ -48,7 +48,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     
     c0 = clist(ccount); %set propagation speed
     
-    [tdoa_mat,~,~] = tdoa_sidex(zdata,xdata,ydata,start_sample,end_sample,FS,'finddelay'); %calculate tdoa matrix based on the propagation speed. 
+    [tdoa_mat,~,~] = tdoa_sidex(zdata,xdata,ydata,start_sample,end_sample,FS,'hilbert'); %calculate tdoa matrix based on the propagation speed. 
     
     %------------------------------------------------------------------------------------------------------------------------------------------------%
     %find midpoints, focal radii, and rotation angles of all receiver pairs

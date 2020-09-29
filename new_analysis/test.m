@@ -4,9 +4,7 @@ f2 = 32;
 FS = 1000;
 
 bandfilt = designfilt('bandpassfir','FilterOrder',100,'CutoffFrequency1',f1,'CutoffFrequency2',f2,'SampleRate',FS);
-data_filt1 = filtfilt(bandfilt,data);
-bandfilt = designfilt('bandpassfir','FilterOrder',100,'CutoffFrequency1',8,'CutoffFrequency2',16,'SampleRate',FS);
-data_filt2 = filtfilt(bandfilt,data);
+data_filt = filtfilt(bandfilt,data);
 event_inds = xlsread('event_inds.xlsx',1,'B2:C189');
 
 figure
@@ -16,6 +14,125 @@ plot(t,data_filt(:,4))
 plot(t,data_filt(:,7))
 plot(t,data_filt(:,10))
 plot(epochtime_event,zeros(length(epochtime_event),1),'*')
+
+%%
+diff = event_inds(:,2) - event_inds(:,1);
+pad = (3000-diff)/2;
+zevent = data(:,[1 4 7 10]).';
+xevent = data(:,[2 5 8 11]).';
+yevent = data(:,[3 6 9 12]).'; 
+zSTFT_mat = [];
+xSTFT_mat = [];
+ySTFT_mat = [];
+
+nn = 1;
+%figure
+for ee = 1:length(event_inds)
+    ee
+    if ~isnan(event_inds(ee,1))
+        for chn = 1:4
+            segment = zevent(chn,event_inds(ee,1)-pad(ee):event_inds(ee,2)+pad(ee));
+            [STFT, f, t] = stft(segment,hanning(64),32,64,1000);
+            [~,yind] = find(STFT==max(max(STFT)));
+            STFT = circshift(STFT,size(STFT,2)/2-yind,2);
+            zSTFT_mat(:,:,nn) = STFT;
+            nn = nn+1;
+%             pcolor(t,f,20*log10(abs(STFT)))
+%             title(['event #' num2str(ee) ', channel = ' num2str(chn)])
+%             colorbar
+%             caxis([-80 -40])
+%             pause
+%             clf;
+        end
+    end
+end
+
+nn = 1;
+%figure
+for ee = 1:length(event_inds)
+    if ~isnan(event_inds(ee,1))
+        for chn = 1:4
+            segment = xevent(chn,event_inds(ee,1)-pad(ee):event_inds(ee,2)+pad(ee));
+            [STFT, f, t] = stft(segment,hanning(64),32,64,1000);
+            [~,yind] = find(STFT==max(max(STFT)));
+            STFT = circshift(STFT,size(STFT,2)/2-yind,2);
+            xSTFT_mat(:,:,nn) = STFT;
+            nn = nn+1;
+%             pcolor(t,f,20*log10(abs(STFT)))
+%             title(['event #' num2str(ee) ', channel = ' num2str(chn)])
+%             colorbar
+%             caxis([-80 -40])
+%             pause
+%             clf;
+        end
+    end
+end
+
+nn = 1;
+%figure
+for ee = 1:length(event_inds)
+    if ~isnan(event_inds(ee,1))
+        for chn = 1:4
+            segment = yevent(chn,event_inds(ee,1)-pad(ee):event_inds(ee,2)+pad(ee));
+            [STFT, f, t] = stft(segment,hanning(64),32,64,1000);
+            [~,yind] = find(STFT==max(max(STFT)));
+            STFT = circshift(STFT,size(STFT,2)/2-yind,2);
+            ySTFT_mat(:,:,nn) = STFT;
+            nn = nn+1;
+%             pcolor(t,f,20*log10(abs(STFT)))
+%             title(['event #' num2str(ee) ', channel = ' num2str(chn)])
+%             colorbar
+%             caxis([-80 -40])
+%             pause
+%             clf;
+        end
+    end
+end
+
+[sinv, tinv] = istft(mean(zSTFT_mat,3), hanning(64), hanning(64),32,64, 1000);
+ztemplate_filt = filtfilt(bandfilt,sinv);
+[sinv, tinv] = istft(mean(xSTFT_mat,3), hanning(64), hanning(64),32,64, 1000);
+xtemplate_filt = filtfilt(bandfilt,sinv);
+[sinv, tinv] = istft(mean(ySTFT_mat,3), hanning(64), hanning(64),32,64, 1000);
+ytemplate_filt = filtfilt(bandfilt,sinv);
+%% Matched Filtering
+
+zevent = data_filt(:,[1 4 7 10]).';
+xevent = data_filt(:,[2 5 8 11]).';
+yevent = data_filt(:,[3 6 9 12]).'; 
+zmatched_data = zeros(size(zevent));
+xmatched_data = zeros(size(xevent));
+ymatched_data = zeros(size(yevent));
+
+for i = 1:4
+full_nfft = 5399910;
+Fdata = fft(zevent(i,:), full_nfft);
+Freplica = conj(fft(ztemplate_filt, full_nfft));
+full_matched_filter = repmat(Freplica,1,1);
+zmatched_data(i,:) = bsxfun(@rdivide, ifft(Fdata .* full_matched_filter), (sqrt(length(ztemplate_filt)*length(zevent(i,:)))*sqrt(var(zevent(i,:)))*sqrt(var(ztemplate_filt))));
+%figure;
+%plot(matched_data(i,:));
+end
+
+for i = 1:4
+full_nfft = 5399910;
+Fdata = fft(xevent(i,:), full_nfft);
+Freplica = conj(fft(xtemplate_filt, full_nfft));
+full_matched_filter = repmat(Freplica,1,1);
+xmatched_data(i,:) = bsxfun(@rdivide, ifft(Fdata .* full_matched_filter), (sqrt(length(xtemplate_filt)*length(xevent(i,:)))*sqrt(var(xevent(i,:)))*sqrt(var(xtemplate_filt))));
+%figure;
+%plot(matched_data(i,:));
+end
+
+for i = 1:4
+full_nfft = 5399910;
+Fdata = fft(yevent(i,:), full_nfft);
+Freplica = conj(fft(ytemplate_filt, full_nfft));
+full_matched_filter = repmat(Freplica,1,1);
+ymatched_data(i,:) = bsxfun(@rdivide, ifft(Fdata .* full_matched_filter), (sqrt(length(ytemplate_filt)*length(yevent(i,:)))*sqrt(var(yevent(i,:)))*sqrt(var(ytemplate_filt))));
+%figure;
+%plot(matched_data(i,:));
+end
 
 %% Group Velocity Estimation
 
@@ -179,7 +296,7 @@ geophone_loc = [24.36 -36.64 0;-37.71 11.51 0;21.05 25.30 0;-7.71 -0.167 0];
 FS = 1000;
 elev = 0;
 az = 0:1:360;
-c = 201;
+c = 350;
 f_range = [16 32];
 NFFT = 16;
 overlap = 0;
@@ -188,9 +305,9 @@ weighting = 'uniform';
 
 ang_est_mat = zeros(1,length(event_inds));
 
-for i = 1
+for i = 1:188
     i 
-    for c= 100:300
+    for c= 350
     ss = event_inds(i,1);
     es = event_inds(i,2);
     if isnan(ss) || isnan(es)
@@ -250,17 +367,17 @@ for i = 1
 end
 %% Event Locatization
 
-zevent = data_filt1(:,[1 4 7 10]).';
-xevent = data_filt1(:,[2 5 8 11]).';
-yevent = data_filt1(:,[3 6 9 12]).'; 
+zevent = data_filt(:,[1 4 7 10]).';
+xevent = data_filt(:,[2 5 8 11]).';
+yevent = data_filt(:,[3 6 9 12]).'; 
 geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
 
 FS = 1000;
-c_range = 342;
+c_range = 350;
 N = 1000;
 plotting = 1;
 
-figure(1)
+figure
 plot(geophone_loc(:,1),geophone_loc(:,2),'ro');
 xlabel('X position (m)')
 xlabel('Y position (m)')
@@ -277,7 +394,7 @@ pos_est_mat = zeros(2,length(event_inds));
 c_est_mat = zeros(length(event_inds),1);
 error_mat = zeros(length(event_inds),1);
 
-for i = 105
+for i = 185
     i 
     
     ss = event_inds(i,1);
@@ -291,7 +408,7 @@ for i = 105
         calib_act = [eventx eventy];
 
         try
-            [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zevent,xevent,yevent,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act);
+            [loc_est,c_est,err,tdoa_mat] = loc_est_calib_temp(zevent,xevent,yevent,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act);
         catch
             disp('Skipping this...')
         end
@@ -319,6 +436,18 @@ for i = 105
     end
    
 end
+%%
+xlist = -350:1:350;
+ylist = -350:1:350;
+clist = 350;
+err_mat = tdoa_cmp(xlist, ylist, clist, geophone_loc(:,1), geophone_loc(:,2), tdoa_mat);
+[xind,yind,cind] = ind2sub(size(err_mat),find(err_mat == min(min(min(err_mat)))));
+
+disp([xlist(xind) ylist(yind) clist(cind)])
+
+figure
+h = pcolor(xlist,ylist,err_mat(:,:,cind));
+set(h,'Edgecolor','None')
 
 %% Location Estimation plot
 path = '/Users/Rui/Documents/Graduate/Research/SIDEX/SIDEX20/new_analysis/'; % set path to where you want to save figures; create folder "calib_results" at this path location;
