@@ -4,7 +4,7 @@
 % Last updated: 02/28/2020
 %-----------------------------%
 
-function [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zdata,xdata,ydata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act)
+function [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zdata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act)
 % Estimates the location of events recorded on the z-axis channels. 
 % Input data from x/y axis as zdata if want to estimate location of event on those axes. 
 
@@ -48,7 +48,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     
     c0 = clist(ccount); %set propagation speed
     
-    [tdoa_mat,~,~] = tdoa_sidex(zdata,xdata,ydata,start_sample,end_sample,FS,'hilbert'); %calculate tdoa matrix based on the propagation speed. 
+    [tdoa_mat] = tdoa_sidex(zdata,start_sample,end_sample,FS,'hilbert'); %calculate tdoa matrix based on the propagation speed. 
     
     %------------------------------------------------------------------------------------------------------------------------------------------------%
     %find midpoints, focal radii, and rotation angles of all receiver pairs

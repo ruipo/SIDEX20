@@ -14,7 +14,7 @@ end
 % find simulated tdoa between each receiver
 for j = 1:length(t)
     for k = 1:length(t)
-        tdoa_sim(k,j) = t(j)-t(k);
+        tdoa_sim(k,j) = t(k)-t(j);
     end
 end
 

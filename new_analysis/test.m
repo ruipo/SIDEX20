@@ -5,6 +5,7 @@ FS = 1000;
 
 bandfilt = designfilt('bandpassfir','FilterOrder',100,'CutoffFrequency1',f1,'CutoffFrequency2',f2,'SampleRate',FS);
 data_filt = filtfilt(bandfilt,data);
+%data_filt = data;
 event_inds = xlsread('event_inds.xlsx',1,'B2:C189');
 
 figure
@@ -370,10 +371,37 @@ end
 zevent = data_filt(:,[1 4 7 10]).';
 xevent = data_filt(:,[2 5 8 11]).';
 yevent = data_filt(:,[3 6 9 12]).'; 
+
+%plot xyz time series for event i
+i = 132;
+[eventx, eventy]= ll2xy(lat_event(i),long_event(i),mean(geophone_GPS(:,1)),mean(geophone_GPS(:,2)));
+t1 = event_inds(i,1);
+t2 = event_inds(i,2);
+
+figure
+k=[1 3 5 7];
+for j = 1:4
+subplot(4,1,j)
+plot(t(t1:t2),zevent(j,t1:t2))
+hold on
+plot(t(t1:t2),yevent(j,t1:t2));
+plot(t(t1:t2),xevent(j,t1:t2));
+title(['Geophone ' num2str(j) '; Event Location: ' num2str(eventx) ', ' num2str(eventy)]);
+legend('z-dir','x-dir','y-dir')
+%xlabel('Time')
+%ylabel('Amplitude')
+%datetick('x','HH:MM:SS:FFF','keepticks');
+xlim([t(t1) t(t2)]);
+%title(date);
+set(gca,'fontsize',12);
+grid on
+%k = k+1;
+end
+
 geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
 
 FS = 1000;
-c_range = 350;
+c_range = 300;
 N = 1000;
 plotting = 1;
 
@@ -394,7 +422,7 @@ pos_est_mat = zeros(2,length(event_inds));
 c_est_mat = zeros(length(event_inds),1);
 error_mat = zeros(length(event_inds),1);
 
-for i = 185
+for i = 171
     i 
     
     ss = event_inds(i,1);
@@ -408,7 +436,7 @@ for i = 185
         calib_act = [eventx eventy];
 
         try
-            [loc_est,c_est,err,tdoa_mat] = loc_est_calib_temp(zevent,xevent,yevent,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act);
+            [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zevent,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act);
         catch
             disp('Skipping this...')
         end

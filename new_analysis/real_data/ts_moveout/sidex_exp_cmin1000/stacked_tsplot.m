@@ -1,7 +1,7 @@
 
 %% SP1-V
 
-filename = 'sidex_exp_sp5_vertical.txt';
+filename = 'sidex_exp_sp3_vertical.txt';
 fout = read_moveout_asc(filename);
 TT = array2timetable(fout,'SampleRate',1024);
 for i = 1:length(TT.Properties.VariableNames)
@@ -9,7 +9,7 @@ for i = 1:length(TT.Properties.VariableNames)
 end
 smallTTV = TT(1:1024,fliplr([2 4 6 8 10 12 14 16 18 20 22]));
 
-filename = 'sidex_exp_sp5_horiz.txt';
+filename = 'sidex_exp_sp3_horiz.txt';
 fout = read_moveout_asc(filename);
 TT = array2timetable(fout,'SampleRate',1024);
 for i = 1:length(TT.Properties.VariableNames)
@@ -21,13 +21,25 @@ figure
 subplot(1,2,1)
 stackedplot(smallTTV)
 set(gca,'fontsize',12)
-title('Explosive Source, SP5-V')
+title('Explosive Source, SP3-V')
 grid on
 subplot(1,2,2)
 stackedplot(smallTTH)
 set(gca,'fontsize',12)
-title('Explosive Source, SP5-H')
+title('Explosive Source, SP3-H')
 grid on
+
+z150m = smallTTV(:,4).Variables;
+h150m = smallTTH(:,4).Variables;
+figure
+plot(h150m(1:512)./max(abs(h150m)),z150m(1:512)./max(abs(z150m)))
+xlabel('Horizontal Axis')
+ylabel('Vertical Axis')
+grid on
+set(gca,'fontsize',20)
+xlim([-1 1])
+ylim([-1 1])
+title('H vs. V, Range = 150m')
 
 %% spec plot
 

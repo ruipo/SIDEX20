@@ -304,21 +304,15 @@ zdatatest = [];
 xdatatest = [];
 ydatatest = [];
 
-f = [0 0.05 0.06 0.1 0.11 1]; %filter between 15-25 Hz
-a = [0 0 1 1 0 0];
-ord = 500;
+bpFilt = designfilt('bandpassfir','FilterOrder',500, ...
+         'CutoffFrequency1',8,'CutoffFrequency2',32, ...
+         'SampleRate',FS);
+%fvtool(bpFilt)
 
-b = firpm(ord,f,a);
-hd = dfilt.dffir(b);
-zplane(hd);
-j = 1;
-
-for i = [1 2 3 4]
- 
-    zdatatest(j,:) = filter(hd,zdata(i,:));
-    xdatatest(j,:) = filter(hd,xdata(i,:));
-    ydatatest(j,:) = filter(hd,ydata(i,:));
-    j=j+1;
+for i = 1:4
+    zdatafilt(i,:) = filtfilt(bpFilt,zdata(i,:));
+    xdatafilt(i,:) = filtfilt(bpFilt,xdata(i,:));
+    ydatafilt(i,:) = filtfilt(bpFilt,ydata(i,:));
 end
 
 num_event = min(length(zstart_sample),length(zend_sample));

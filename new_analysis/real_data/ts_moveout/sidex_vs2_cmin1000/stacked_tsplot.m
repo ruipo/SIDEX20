@@ -1,7 +1,7 @@
 
 %% SP1-V
 
-filename = 'sidex_vs_sp1_vertical.txt';
+filename = 'sidex_vs_sp5_vertical.txt';
 fout = read_moveout_asc(filename);
 TT = array2timetable(fout,'SampleRate',1024);
 for i = 1:length(TT.Properties.VariableNames)
@@ -9,7 +9,7 @@ for i = 1:length(TT.Properties.VariableNames)
 end
 smallTTV = TT(1:1024,fliplr([2 4 6 8 10 12 14 16 18 20 22]));
 
-filename = 'sidex_vs_sp1_horiz.txt';
+filename = 'sidex_vs_sp5_horiz.txt';
 fout = read_moveout_asc(filename);
 TT = array2timetable(fout,'SampleRate',1024);
 for i = 1:length(TT.Properties.VariableNames)
@@ -21,12 +21,12 @@ figure
 subplot(1,2,1)
 stackedplot(smallTTV)
 set(gca,'fontsize',12)
-title('Vertical Source, SP1-V')
+title('Vertical Source, SP5-V')
 grid on
 subplot(1,2,2)
 stackedplot(smallTTH)
 set(gca,'fontsize',12)
-title('Vertical Source, SP1-H')
+title('Vertical Source, SP5-H')
 grid on
 
 %% spec plot
@@ -54,7 +54,7 @@ colorbar
 %xlim([19 23])
 %ylim([0 200])
 ylabel({'range = 210m', 'Frequency (Hz)'})
-title('Vertical Source, SP1-VS')
+title('Vertical Source, SP5-V')
 set(gca,'fontsize',12)
 subplot(6,1,2)
 imagesc(t,f,20*log10(abs(S2)))
@@ -136,7 +136,7 @@ plot([0; tmat(:,3)],([0; tmat(:,3)]\ranges.')*[0; tmat(:,3)],'-g')
 plot([0; tmat(:,4)],ranges,'k*')
 plot([0; tmat(:,4)],([0; tmat(:,4)]\ranges.')*[0; tmat(:,4)],'-k')
 grid on
-title('Vertical Source, SP1-V')
+title('Vertical Source, SP5-V')
 set(gca,'Fontsize',20)
 xlabel('Arrival Time (sec)')
 ylabel('Range (m)')

@@ -4,7 +4,7 @@
 % Last updated: 02/28/2020
 %-----------------------------%
 
-function[tdoa_mat,xps_tdoa,yps_tdoa] = tdoa_sidex(zdata,xdata,ydata,start_sample,end_sample,FS,method)
+function[tdoa_mat] = tdoa_sidex(zdata,start_sample,end_sample,FS,method)
 
 %---------------------------------------------------------------------------------------------------------------------------------%
 % Calculates the time difference of arrival between different channels of the input data in the z axis direction. 
@@ -26,8 +26,8 @@ function[tdoa_mat,xps_tdoa,yps_tdoa] = tdoa_sidex(zdata,xdata,ydata,start_sample
 num_chn = size(zdata,1);
 
 tdoa_mat = zeros(num_chn);
-xps_tdoa = zeros(num_chn,1);
-yps_tdoa = zeros(num_chn,1);
+%xps_tdoa = zeros(num_chn,1);
+%yps_tdoa = zeros(num_chn,1);
 
 if end_sample > size(zdata,2)
     zevent = zdata(:,start_sample:end); 
@@ -193,7 +193,7 @@ if strcmp(method,'finddelay')
 end
 
 tdoa_mat = tdoa_mat./FS;
-xps_tdoa = xps_tdoa./FS;
-yps_tdoa = yps_tdoa./FS;
+%xps_tdoa = xps_tdoa./FS;
+%yps_tdoa = yps_tdoa./FS;
 
 end
