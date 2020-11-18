@@ -151,10 +151,10 @@ long_event = zeros(length(locs_start),1);
 UTC_event = NaT(length(locs_start),1);
 
 for ll = 1:length(locs_start)
-    
+        
     lat_event(ll) = cal_lat(locs_start(ll)); %event lat
     long_event(ll) = cal_long(locs_start(ll)); %event long
-    UTC_event(ll) = datetime([rundate ' ' char(cal_time(locs_start(ll)))],'InputFormat', 'yyyyMMdd HH:mm:ss.SSS'); %event UTC time
+    UTC_event(ll) = datetime([rundate ' ' char(cal_time(locs_start(ll)))],'InputFormat', 'yyyyMMdd HH:mm:ss.SSS','Format','d-MMM-y HH:mm:ss.SSS'); %event UTC time
 end
 
 epochtime_event = posixtime(UTC_event); %event epoch time

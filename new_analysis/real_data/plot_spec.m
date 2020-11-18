@@ -175,7 +175,7 @@ bpFilt = designfilt('bandpassfir','FilterOrder',500, ...
          'CutoffFrequency1',8,'CutoffFrequency2',32, ...
          'SampleRate',FS);
 bpFiltnode = designfilt('bandpassfir','FilterOrder',500, ...
-         'CutoffFrequency1',8,'CutoffFrequency2',32, ...
+         'CutoffFrequency1',4,'CutoffFrequency2',490, ...
          'SampleRate',FS_node);
 %fvtool(bpFilt)
 
@@ -188,8 +188,8 @@ for i = 1:4
     xdatafilt(i,:) = filtfilt(bpFiltnode,xdata(i,:));
     ydatafilt(i,:) = filtfilt(bpFiltnode,ydata(i,:));
     zdatafilt(i+4,:) = filtfilt(bpFiltnode,z_node(:,i).');
-    xdatafilt(i+4,:) = filtfilt(bpFiltnode,x_node(:,i).');
-    ydatafilt(i+4,:) = filtfilt(bpFiltnode,y_node(:,i).');
+    xdatafilt(i+4,:) = filtfilt(bpFiltnode,y_node(:,i).');
+    ydatafilt(i+4,:) = filtfilt(bpFiltnode,x_node(:,i).');
 end
 
 figure
@@ -216,30 +216,75 @@ grid on
 %k = k+1;
 end
 
-figure
-k=[1 3 5 7];
-for j = 1:4
-subplot(4,2,k(j))
-plot(tn,znodefilt(j,:))
-hold on
-plot(tn,ynodefilt(j,:));
-plot(tn,xnodefilt(j,:));
-title(['Geophone ' num2str(j)]);
-legend('z-dir','T-dir','L-dir')
-%xlabel('Time')
-%ylabel('Amplitude')
-%datetick('x','HH:MM:SS:FFF','keepticks');
-xlim([tn(1) tn(end)]);
-%title(date);
-set(gca,'fontsize',12);
-grid on
-%k = k+1;
-end
-% 
+% figure
+% k=[1 3 5 7];
+% for j = 1:4
+% subplot(4,2,k(j))
+% plot(tn,znodefilt(j,:))
+% hold on
+% plot(tn,ynodefilt(j,:));
+% plot(tn,xnodefilt(j,:));
+% title(['Geophone ' num2str(j)]);
+% legend('z-dir','T-dir','L-dir')
+% %xlabel('Time')
+% %ylabel('Amplitude')
+% %datetick('x','HH:MM:SS:FFF','keepticks');
+% xlim([tn(1) tn(end)]);
+% %title(date);
+% set(gca,'fontsize',12);
+% grid on
+% %k = k+1;
+% end
+
 % xpos(5) = []; xpos(6) = [];
 % ypos(5) = []; ypos(6) = [];
 % zdatafilt(5,:) = [];
 % zdatafilt(6,:) = [];
+
+% Use phase to estimate direction of arrival
+psivec_filt = [];
+figure
+for j = 1:8
+thetavec = 0:1:360;
+xz = (xdatafilt(j,:).*zdatafilt(j,:));
+%xz(xz<0) = 0;
+yz = (ydatafilt(j,:).*zdatafilt(j,:));
+%yz(yz<0) = 0;
+xzp = (xdatafilt(j,:).*gradient(zdatafilt(j,:)));
+%xzp(xzp>0) = 0;
+yzp = (ydatafilt(j,:).*gradient(zdatafilt(j,:)));
+%yzp(yzp>0) = 0;
+
+psivec_z = cos(deg2rad(thetavec)).^2*sum(xz.^2) + sin(deg2rad(thetavec)).^2*sum(yz.^2) + 2*cos(deg2rad(thetavec)).*sin(deg2rad(thetavec))*sum(xz.*yz);
+psivec_zp = cos(deg2rad(thetavec)).^2*sum(xzp.^2) + sin(deg2rad(thetavec)).^2*sum(yzp.^2) + 2*cos(deg2rad(thetavec)).*sin(deg2rad(thetavec))*sum(xzp.*yzp);
+psivec_filt(j,:) = psivec_z/min(psivec_z) + psivec_zp/min(psivec_zp);
+[~, locs] = findpeaks(psivec_filt(j,:));
+if length(locs)<2
+    locs = [locs 1];
+end
+r1 = xdatafilt(j,:)*cos(deg2rad(thetavec(locs(1)))) + ydatafilt(j,:)*sin(deg2rad(thetavec(locs(1))));
+r2 = xdatafilt(j,:)*cos(deg2rad(thetavec(locs(2)))) + ydatafilt(j,:)*sin(deg2rad(thetavec(locs(2))));
+
+sigma1 = 0;
+for i = 2:length(r1)-1
+    sigma1 = sigma1 + zdatafilt(j,i)*(r1(i+1)-r1(i-1));
+end
+    
+sigma2 = 0;
+for i = 2:length(r1)-1
+    sigma2 = sigma2 + zdatafilt(j,i)*(r2(i+1)-r2(i-1));
+end
+disp([sigma1 sigma2])
+[~,ind] = max([sigma1 sigma2]);
+
+subplot(4,2,j);
+polarplot(deg2rad(thetavec), 10*log10(psivec_filt(j,:)))
+hold on
+polarplot(deg2rad(thetavec(locs(ind)))*ones(10,1), linspace(0,15,10))
+end
+
+
+
 
 %% tdoa localization estimate
 c_range = 384;
