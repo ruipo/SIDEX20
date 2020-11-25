@@ -4,7 +4,7 @@
 % Last updated: 02/28/2020
 %-----------------------------%
 
-function [loc_est,c_est,err,tdoa_mat] = loc_est_hyp(zdata,xdata,ydata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,doMPD)
+function [loc_est,c_est,err,tdoa_mat] = loc_est_calib_testfn(zdata,xdata,ydata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act)
 % Estimates the location of events recorded on the z-axis channels. 
 % Input data from x/y axis as zdata if want to estimate location of event on those axes. 
 
@@ -36,11 +36,15 @@ warning('off','all')
 mpd_mat = zeros(500,2,size(zdata,1));
 for chn = 1:size(zdata,1)
     datain = [zdata(chn,start_sample:end_sample); xdata(chn,start_sample:end_sample); ydata(chn,start_sample:end_sample)];
-    [~, ~, X_est, Y_est] = MPD(datain.',2000);
+    [~, ~, X_est, Y_est] = MPD(datain.',500);
 
     mpd_mat(:,1,chn) = X_est+xpos(chn);
     mpd_mat(:,2,chn) = Y_est+ypos(chn);
 end
+
+%get actual locations of the calibration events from the input calibration data
+x_act = calib_act(1);
+y_act = calib_act(2);
 
 error = zeros(length(clist),1); %initialize errorlist
 c_estlist = zeros(length(clist),1); %initialize c_estlist
@@ -73,6 +77,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
 
             if abs(p2(1)-p1(1)) >= abs(p2(2)-p1(2)) %check orientation of hyperbola
                 orientation = 1; %horizontal
+                disp(orientation)
                 loc_pre_rotation = [c 0]; %location of right receiver before rotation
 
                 if p1(1)-m(1) >= 0 %check to see which receiver is the right receiver
@@ -129,6 +134,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
             %repeat previous part for vertical hyperbola
             elseif abs(p2(1)-p1(1)) < abs(p2(2)-p1(2)) 
                 orientation = 2; 
+                disp(orientation)
                 loc_pre_rotation = [0 c];
 
                 if p1(2)-m(2) >= 0
@@ -187,11 +193,10 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
 
         end
     end
-
     
     %-------------------------------------------------------------------------------------------------------------------------------------------------%
     % add in MPD lines
-    if doMPD
+    
     for chn = 1:size(zdata,1)
         if plotting ~= 0
             figure(gcf);
@@ -201,56 +206,90 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
         x_mat = [x_mat; mpd_mat(:,1,chn).']; 
         y_mat = [y_mat; mpd_mat(:,2,chn).'];
     end
-    end
     
-    %-------------------------------------------------------------------------------------------------------------------------------------------------%
-     %use tdoa between x/y axes and zaxis to further constraint event location. currently NOT ENABLED
-     %SIDEX x/y axes data are not very good, so this section is commented out because it does not improve the location estimate
-     
-%     for i = 1:length(xpos)
-%         rcir = abs(xps_tdoa(i))*c0;   
-%         if rcir ~= 0
-%             [xcir,ycir] = draw_circle(xpos(i),ypos(i),rcir,length(x));
-% 
-%             if plotting ~= 0
-%                 figure(gcf);
-%                 plot(p1(1),p1(2),'ko');
-%                 hold on
-%                 plot(p2(1),p2(2),'ko');
-%                 plot(xcir,ycir,'g');
-%                 xL = xlim;
-%                 yL = ylim;
-%                 line([0 0], yL,'color','black');
-%                 line(xL, [0 0],'color','black');
-%                 grid on
-%             end
-% 
-%             x_mat = [x_mat;xcir]; %add all plotted hyperbola coordinates into a matrix
-%             y_mat = [y_mat;ycir];
-%         end
-%        
-%         if rcir ~= 0
-%             rcir = abs(yps_tdoa(i))*c0;      
-%             [xcir,ycir] = draw_circle(xpos(i),ypos(i),rcir,length(x));
-% 
-%             if plotting ~= 0
-%                 figure(gcf);
-%                 plot(p1(1),p1(2),'ko');
-%                 hold on
-%                 plot(p2(1),p2(2),'ko');
-%                 plot(xcir,ycir,'b');
-%                 xL = xlim;
-%                 yL = ylim;
-%                 line([0 0], yL,'color','black');
-%                 line(xL, [0 0],'color','black');
-%                 grid on
-%             end
-%         
-%             x_mat = [x_mat;xcir]; %add all plotted hyperbola coordinates into a matrix
-%             y_mat = [y_mat;ycir];
-%         end
-%     end 
+
+   %-------------------------------------------------------------------------------------------------------------------------------------------------%
+   gs = -350;
+   ge = 350;
+   dg = 0.1;
+   gridlist = gs:dg:ge;
+   %gridlist2 = -350:1:350;
+   sigma = 50;
+   
+   prob_grid = ones(length(gridlist));
+   figure
+   xlim([-350 350])
+   ylim([-350 350])
+   
     
+   for n = 1:size(x_mat,1)
+   
+       interp_grid = 0.1*ones(length(gridlist));
+       
+       if issorted(x_mat(n,:)) || issorted(fliplr(x_mat(n,:)))
+           y_interp = interp1(x_mat(n,:), y_mat(n,:), gridlist, 'spline');
+           check1 = gs<y_interp;
+           check2 = y_interp<ge;
+           check = check1.*check2;
+           xgridlist = gridlist(logical(check));
+           ygridlist = y_interp(logical(check));
+           for ent = 1:length(xgridlist)
+               [~,ent1] = min(abs(gridlist-xgridlist(ent)));
+               [~,ent2] = min(abs(gridlist-ygridlist(ent)));
+               interp_grid(:,ent1) = 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2));
+           end
+          
+       elseif issorted(y_mat(n,:)) || issorted(fliplr(y_mat(n,:)))
+           x_interp = interp1(y_mat(n,:), x_mat(n,:), gridlist, 'spline');
+           check1 = gs<x_interp;
+           check2 = x_interp<ge;
+           check = check1.*check2;
+           ygridlist = gridlist(logical(check));
+           xgridlist = x_interp(logical(check));
+           for ent = 1:length(ygridlist)
+               [~,ent1] = min(abs(gridlist-ygridlist(ent)));
+               [~,ent2] = min(abs(gridlist-xgridlist(ent)));
+               interp_grid(ent1,:) = 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2));
+           end
+           
+       else
+           check1 = gs<x_mat(n,:);
+           check2 = x_mat(n,:)<ge;
+           check3 = gs<y_mat(n,:);
+           check4 = y_mat(n,:)<ge;
+           check = check1.*check2.*check3.*check4;
+           
+           xregion = x_mat(n,:);
+           xregion = xregion(logical(check));
+           xregion2 = movmean(xregion,2);
+           yregion = y_mat(n,:);
+           yregion = yregion(logical(check));
+           yregion2 = movmean(yregion,2);
+           
+           xregions = [xregion xregion2];
+           yregions = [yregion yregion2];
+           
+           for ent = 1:length(xregions)
+               [~,ent1] = min(abs(gridlist-xregions(ent)));
+               [~,ent2] = min(abs(gridlist-yregions(ent)));
+               interp_grid(:,ent1) = (interp_grid(:,ent1).' + 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2)))./2;             
+           end
+           
+       end
+       
+       interp_grid = interp_grid./sum(interp_grid(:));
+       prob_grid = prob_grid.*interp_grid;
+       %prob_grid = prob_grid./sum(prob_grid(:));
+       imagesc(gridlist,gridlist,prob_grid*100)
+       set(gca,'YDir','normal')
+       colormap jet
+       pause;
+       %clf;
+       
+   end
+  
+
+
    %------------------------------------------------------------------------------------------------------------------------------------------------%
    %calculate the intersections of all hyperbolas and circles
     x_intlist = [];
@@ -279,13 +318,13 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     if ~isempty(x_intlist) && ~isempty(y_intlist)
         
         figure
-        x_hist = histfit(real(x_intlist((x_intlist<5000 & x_intlist>-5000))),round(length(x_intlist((x_intlist<5000 & x_intlist>-5000)))/1),'kernel'); %fit a kernel distribution to histogram of x-intersection values
+        x_hist = histfit(real(x_intlist((x_intlist<350 & x_intlist>-350))),round(length(x_intlist)/2),'kernel'); %fit a kernel distribution to histogram of x-intersection values
         [xpeaks,xloclist] = findpeaks(x_hist(2).YData); %find location of the peaks of the kernel distribution
         [~,lx] = max(xpeaks); %x-estimate is the location of tallest peak
         locx = xloclist(lx);
         
         figure
-        y_hist = histfit(real(y_intlist((x_intlist<5000 & x_intlist>-5000))),round(length(y_intlist((x_intlist<5000 & x_intlist>-5000)))/1),'kernel'); %fit a kernel distribution to histogram of y-intersection values
+        y_hist = histfit(real(y_intlist((y_intlist<350 & y_intlist>-350))),round(length(y_intlist)/2),'kernel'); %fit a kernel distribution to histogram of y-intersection values
         [ypeaks,yloclist] = findpeaks(y_hist(2).YData); %find location of the peaks of the kernel distribution
         [~,ly] = max(ypeaks);%y-estimate is the location of the tallest peak
         locy = yloclist(ly);
@@ -302,19 +341,18 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     
     
     if isempty(xloclist) %if no peaks in kernel function is found, use mode method for x,y estimates
-            loc_est = [mode(round(x_intlist((x_intlist<5000 & x_intlist>-5000)),3)) loc_est];
+            loc_est = [mode(round(x_intlist,3)) loc_est];
     end
         
     if isempty(yloclist)
-            loc_est = [loc_est mode(round(y_intlist((x_intlist<5000 & x_intlist>-5000)),1))];
+            loc_est = [loc_est mode(round(y_intlist,1))];
     end
     
     %------------------------------------------------------------------------------------------------------------------------------------------------%
-    %calculates the error in tdoa matrices between estimation and a simulated event at the estimated location
+    %calculates the error between estimation and actual event locations
     %selects the propagation speed/estimation location with the lowest error
     
-    tdoa_sim_mat = tdoa_sim(loc_est(1),loc_est(2),c0,xpos,ypos); %calculated the tdoa matrix as if the event occurred at the estimated location with the assumed propagation speed. 
-    error(ccount) = sqrt(sum(sum((tdoa_mat - tdoa_sim_mat).^2))); %calculate the error of the simulated tdoa matrix and the actual tdoa matrix. 
+    error(ccount) = sqrt((x_act - loc_est(1))^2 + (y_act - loc_est(2))^2); 
     c_estlist(ccount) = c0;
     loc_estlist(1,ccount) = loc_est(1);
     loc_estlist(2,ccount) = loc_est(2);
@@ -326,7 +364,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
 
         xlabel('X position (m)')
         xlabel('Y position (m)')
-        title(['propagration speed = ', num2str(c0), ' m/s']);
+        title(['propagation speed = ', num2str(c0), ' m/s']);
         xlim([-350 350]);
         ylim([-150 350]);
         
@@ -335,6 +373,10 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
         disp(['estimate error = ', num2str(error(ccount)), '.']);
         
         pause
+    end
+% STOP EARLY TO SAVE COMPUTATION TIME    
+    if error(ccount) < 0.1
+        break
     end
     
 end

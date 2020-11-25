@@ -4,7 +4,7 @@
 % Last updated: 02/28/2020
 %-----------------------------%
 
-function [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zdata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act)
+function [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zdata,xdata,ydata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act)
 % Estimates the location of events recorded on the z-axis channels. 
 % Input data from x/y axis as zdata if want to estimate location of event on those axes. 
 
@@ -31,6 +31,16 @@ function [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zdata,xpos,ypos,start_samp
 %------------------------------------------------------------------------------------------------------------------------------------------------%
 
 warning('off','all')  
+
+% MPD using z,x-y axis data
+mpd_mat = zeros(500,2,size(zdata,1));
+for chn = 1:size(zdata,1)
+    datain = [zdata(chn,start_sample:end_sample); xdata(chn,start_sample:end_sample); ydata(chn,start_sample:end_sample)];
+    [~, ~, X_est, Y_est] = MPD(datain.',500);
+
+    mpd_mat(:,1,chn) = X_est+xpos(chn);
+    mpd_mat(:,2,chn) = Y_est+ypos(chn);
+end
 
 %get actual locations of the calibration events from the input calibration data
 x_act = calib_act(1);
@@ -181,6 +191,20 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
 
         end
     end
+    
+    %-------------------------------------------------------------------------------------------------------------------------------------------------%
+    % add in MPD lines
+    
+    for chn = 1:size(zdata,1)
+        if plotting ~= 0
+            figure(gcf);
+            plot(mpd_mat(:,1,chn),mpd_mat(:,2,chn),'b');
+            pause
+        end
+        x_mat = [x_mat; mpd_mat(:,1,chn).']; 
+        y_mat = [y_mat; mpd_mat(:,2,chn).'];
+    end
+    
 
     %-------------------------------------------------------------------------------------------------------------------------------------------------%
      %use tdoa between x/y axes and zaxis to further constraint event location. currently NOT ENABLED
@@ -304,7 +328,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
 
         xlabel('X position (m)')
         xlabel('Y position (m)')
-        title(['propagration speed = ', num2str(c0), ' m/s']);
+        title(['propagation speed = ', num2str(c0), ' m/s']);
         xlim([-350 350]);
         ylim([-150 350]);
         

@@ -1,11 +1,14 @@
 %% Data Band-pass filter
-f1 = 16;
-f2 = 32;
+f1 = 12;
+f2 = 20;
 FS = 1000;
 
 bandfilt = designfilt('bandpassfir','FilterOrder',100,'CutoffFrequency1',f1,'CutoffFrequency2',f2,'SampleRate',FS);
-data_filt = filtfilt(bandfilt,data);
-data_filt = data;
+%data_filt = filtfilt(bandfilt,data);
+data_cor = data;
+data_cor(:,[2 5 8 11]) = data(:,[2 5 8 11]).*cos(3*pi/2) - data(:,[3 6 9 12]).*sin(3*pi/2);
+data_cor(:,[3 6 9 12]) = data(:,[2 5 8 11]).*sin(3*pi/2) + data(:,[3 6 9 12]).*cos(3*pi/2);
+data_filt = filtfilt(bandfilt,data_cor);
 event_inds = xlsread('event_inds.xlsx',1,'B2:C189');
 
 figure
@@ -19,12 +22,21 @@ plot(epochtime_event,zeros(length(epochtime_event),1),'*')
 %% Spectrogram View
 figure
 win_len = 128;
-d1 = lldistkm([lat_event(1) long_event(1)],[geophone_GPS(1,1) geophone_GPS(1,2)]);
-d2 = lldistkm([lat_event(2) long_event(2)],[geophone_GPS(2,1) geophone_GPS(2,2)]);
-d3 = lldistkm([lat_event(3) long_event(3)],[geophone_GPS(3,1) geophone_GPS(3,2)]);
-d4 = lldistkm([lat_event(4) long_event(4)],[geophone_GPS(4,1) geophone_GPS(4,2)]);
+
+plotting = 1;
+Sz_vec_mat = zeros(length(event_inds),65);
+Sx_vec_mat = zeros(length(event_inds),65);
+Sy_vec_mat = zeros(length(event_inds),65);
 
 for ee = 1:length(event_inds)
+    ee
+    
+    if ~isnan(event_inds(ee,1))
+    
+    d1 = lldistkm([lat_event(ee) long_event(ee)],[geophone_GPS(1,1) geophone_GPS(1,2)]);
+    d2 = lldistkm([lat_event(ee) long_event(ee)],[geophone_GPS(2,1) geophone_GPS(2,2)]);
+    d3 = lldistkm([lat_event(ee) long_event(ee)],[geophone_GPS(3,1) geophone_GPS(3,2)]);
+    d4 = lldistkm([lat_event(ee) long_event(ee)],[geophone_GPS(4,1) geophone_GPS(4,2)]);
     
     event = data(event_inds(ee,1):event_inds(ee,2)+500,:);
     event_time = t(event_inds(ee,1):event_inds(ee,2)+500);
@@ -39,30 +51,69 @@ for ee = 1:length(event_inds)
     [Sx,~,~] = spectroView(eventx,FS, win_len);
     [Sy,fvec,tvec] = spectroView(eventy,FS, win_len);
     
-    specSubplot(Sz(:,:,1),tvec+t_start,fvec,4,3,1)
-    title('Z-axis Spectrogram')
-    ylabel({['R = ' num2str(round(d1*1000,2)) ' m'],'Frequeny (Hz)'})
-    specSubplot(Sz(:,:,2),tvec+t_start,fvec,4,3,4)
-    ylabel({['R = ' num2str(round(d2*1000,2)) ' m'],'Frequeny (Hz)'})
-    specSubplot(Sz(:,:,3),tvec+t_start,fvec,4,3,7)
-    ylabel({['R = ' num2str(round(d3*1000,2)) ' m'],'Frequeny (Hz)'})
-    specSubplot(Sz(:,:,4),tvec+t_start,fvec,4,3,10)
-    ylabel({['R = ' num2str(round(d4*1000,2)) ' m'],'Frequeny (Hz)'})
-    specSubplot(Sx(:,:,1),tvec+t_start,fvec,4,3,2)
-    title('X-axis Spectrogram')
-    specSubplot(Sx(:,:,2),tvec+t_start,fvec,4,3,5)
-    specSubplot(Sx(:,:,3),tvec+t_start,fvec,4,3,8)
-    specSubplot(Sx(:,:,4),tvec+t_start,fvec,4,3,11)
-    xlabel('Time after event (sec)')
-    specSubplot(Sy(:,:,1),tvec+t_start,fvec,4,3,3)
-    title('Y-axis Spectrogram')
-    specSubplot(Sy(:,:,2),tvec+t_start,fvec,4,3,6)
-    specSubplot(Sy(:,:,3),tvec+t_start,fvec,4,3,9)
-    specSubplot(Sy(:,:,4),tvec+t_start,fvec,4,3,12)
-   
-    pause
-    clf
+    if plotting
+        specSubplot(Sz(:,:,1),tvec+t_start,fvec,4,3,1)
+        title('Z-axis Spectrogram')
+        ylabel({['R = ' num2str(round(d1*1000,2)) ' m'],'Frequeny (Hz)'})
+        specSubplot(Sz(:,:,2),tvec+t_start,fvec,4,3,4)
+        ylabel({['R = ' num2str(round(d2*1000,2)) ' m'],'Frequeny (Hz)'})
+        specSubplot(Sz(:,:,3),tvec+t_start,fvec,4,3,7)
+        ylabel({['R = ' num2str(round(d3*1000,2)) ' m'],'Frequeny (Hz)'})
+        specSubplot(Sz(:,:,4),tvec+t_start,fvec,4,3,10)
+        ylabel({['R = ' num2str(round(d4*1000,2)) ' m'],'Frequeny (Hz)'})
+        specSubplot(Sx(:,:,1),tvec+t_start,fvec,4,3,2)
+        title('X-axis Spectrogram')
+        specSubplot(Sx(:,:,2),tvec+t_start,fvec,4,3,5)
+        specSubplot(Sx(:,:,3),tvec+t_start,fvec,4,3,8)
+        specSubplot(Sx(:,:,4),tvec+t_start,fvec,4,3,11)
+        xlabel('Time after event (sec)')
+        specSubplot(Sy(:,:,1),tvec+t_start,fvec,4,3,3)
+        title('Y-axis Spectrogram')
+        specSubplot(Sy(:,:,2),tvec+t_start,fvec,4,3,6)
+        specSubplot(Sy(:,:,3),tvec+t_start,fvec,4,3,9)
+        specSubplot(Sy(:,:,4),tvec+t_start,fvec,4,3,12)
+        
+        pause
+        clf
+    end
+    
+    Sz_vec_mat(ee,:) = mean(mean(Sz,3),2);
+    Sx_vec_mat(ee,:) = mean(mean(Sx,3),2);
+    Sy_vec_mat(ee,:) = mean(mean(Sy,3),2);
+    
+    else
+    Sz_vec_mat(ee,:) = NaN(65,1);
+    Sx_vec_mat(ee,:) = NaN(65,1);
+    Sy_vec_mat(ee,:) = NaN(65,1);
+    
+    end
+    
 end
+
+figure
+subplot(3,1,1)
+plot(fvec, 20*log10(abs(Sz_vec_mat)./1E-6),'.');
+hold on
+plot(fvec, nanmean(20*log10(abs(Sz_vec_mat)./1E-6),1),'k','linewidth',2);
+title('Z-axis')
+set(gca,'fontsize',20)
+ylim([0 60])
+subplot(3,1,2)
+plot(fvec, 20*log10(abs(Sx_vec_mat)./1E-6),'.');
+hold on
+plot(fvec, nanmean(20*log10(abs(Sz_vec_mat)./1E-6),1),'k','linewidth',2);
+ylabel('dB re 1 uPa')
+title('X-axis')
+set(gca,'fontsize',20)
+ylim([0 60])
+subplot(3,1,3)
+plot(fvec, 20*log10(abs(Sy_vec_mat)./1E-6),'.');
+hold on
+plot(fvec, nanmean(20*log10(abs(Sz_vec_mat)./1E-6),1),'k','linewidth',2);
+xlabel('Frequency (Hz)')
+title('Y-axis')
+set(gca,'fontsize',20)
+ylim([0 60])
 
 %% Group velocity estimate with toda and multiple filter method
 
@@ -160,11 +211,8 @@ ylabel('Group Velocity (m/s)')
 
 %% Motion Product Detector
 
-FS = 1000;
-f1 = 16;
-f2 = 32;
-thetas = [275 275 300 311];
-thetas = [0 0 0 0];
+%thetas = [275 275 300 311];
+%thetas = [270 270 270 270];
 
 figure
 
@@ -172,20 +220,23 @@ for ee = 1:188
     if ~isnan(event_inds(ee,1))
         [event1x, event1y]= ll2xy(lat_event(ee),long_event(ee),mean(geophone_GPS(:,1)),mean(geophone_GPS(:,2)));
         geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
-        event = data(event_inds(ee,1):event_inds(ee,2),:);
+        event = data_cor(event_inds(ee,1):event_inds(ee,2),:);
         plot(geophone_loc(:,1),geophone_loc(:,2),'ro')
         hold on
         plot(event1x, event1y, 'b*')
 
         for chn = 1:4
             datain = event(:,chn+(chn-1)*2:chn+(chn-1)*2+2);
-            [X_HiV, Y_HiV, X_est, Y_est] = MPD(datain,f1,f2,FS,10,thetas(chn));
+            [X_HiV, Y_HiV, X_est, Y_est] = MPD(datain,500);
             plot(X_est+geophone_loc(chn,1),Y_est+geophone_loc(chn,2),'k');
         end
         grid on
-        title(['event number: ' num2str(ee)]);
+        title(['Event number ' num2str(ee)]);
         xlim([-250 250])
         ylim([-250 250])
+        xlabel('X (m)')
+        ylabel('Y (m)')
+        set(gca, 'fontsize',20)
         pause
         clf;
     end
@@ -193,42 +244,46 @@ end
 
 %% plot V-H
 
-FS = 1000;
-f1 = 16;
-f2 = 32;
 tdoa_xy = zeros(4,188);
 figure
 
 for ee = 1:188
     if ~isnan(event_inds(ee,1))
-        event = data_filt(event_inds(ee,1):event_inds(ee,2),:);
-
+        event = data(event_inds(ee,1):event_inds(ee,2),:);
+        
+        p = 1;
         for chn = 1:4
             datain = event(:,chn+(chn-1)*2:chn+(chn-1)*2+2);
             [corr,lags] = xcorr(abs(hilbert(datain(:,2))),abs(hilbert(datain(:,3))));
             [~,loc] = max(corr);
             tdoa_xy(chn,ee) = lags(loc)/FS;
         
-            subplot(1,2,1)
-            plot(datain(:,2),datain(:,1))
-            xlabel('X-dir')
-            ylabel('Z-xir')
+            subplot(2,4,p)
+            plot(datain(:,2)./max(abs(datain(:,2))),datain(:,1)./max(abs(datain(:,1))))
+            xlabel('X-axis')
+            ylabel('Z-axis')
+            xlim([-1 1])
+            ylim([-1 1])
             grid on
-            axis equal
-            title(['event ' num2str(ee) 'Geophone ' num2str(chn)])
-            subplot(1,2,2)
-            plot(datain(:,3),datain(:,1))
-            xlabel('Y-dir')
-            ylabel('Z-xir')
-            grid on
-            axis equal
+            %axis equal
             title(['Geophone ' num2str(chn)])
-            pause
+            set(gca,'fontsize',20)
+            p = p+1;
+            subplot(2,4,p)
+            plot(datain(:,3)./max(abs(datain(:,3))),datain(:,1)./max(abs(datain(:,1))))
+            xlabel('Y-axis')
+            ylabel('Z-axis')
+            xlim([-1 1])
+            ylim([-1 1])
+            grid on
+            %axis equal
+            title(['Geophone ' num2str(chn)])
+            set(gca,'fontsize',20)
+            p = p+1;
 
-            clf
         end
-        
-
+        pause
+        clf
     end
 end
 %% Event Beamform
@@ -373,9 +428,9 @@ for i = 1:188
 
                 [~,ind] = max([sigma1 sigma2]);
                 disp([sigma1 sigma2])
-                theta_est(j) = thetavec(locs(ind));
+                theta_est(j) = rad2deg(deg2rad(thetavec(locs(ind)))+3*pi/2);
             else
-                theta_est(j) = thetavec(locs(1));
+                theta_est(j) = rad2deg(deg2rad(thetavec(locs(1)))+3*pi/2);
             end
                 
             
@@ -410,7 +465,7 @@ xevent = data_filt(:,[2 5 8 11]).';
 yevent = data_filt(:,[3 6 9 12]).'; 
 
 %plot xyz time series for event i
-i = 132;
+i = 1;
 [eventx, eventy]= ll2xy(lat_event(i),long_event(i),mean(geophone_GPS(:,1)),mean(geophone_GPS(:,2)));
 t1 = event_inds(i,1);
 t2 = event_inds(i,2);
@@ -434,11 +489,11 @@ set(gca,'fontsize',12);
 grid on
 %k = k+1;
 end
-
+%%
 geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
 
 FS = 1000;
-c_range = 300;
+c_range = 259;
 N = 1000;
 plotting = 1;
 
@@ -459,7 +514,7 @@ pos_est_mat = zeros(2,length(event_inds));
 c_est_mat = zeros(length(event_inds),1);
 error_mat = zeros(length(event_inds),1);
 
-for i = 171
+for i = 2
     i 
     
     ss = event_inds(i,1);
@@ -473,7 +528,7 @@ for i = 171
         calib_act = [eventx eventy];
 
         try
-            [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zevent,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act);
+            [loc_est,c_est,err,tdoa_mat] = loc_est_calib_testfn(zevent,xevent, yevent,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act);
         catch
             disp('Skipping this...')
         end

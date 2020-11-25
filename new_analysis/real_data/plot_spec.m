@@ -1,22 +1,29 @@
 %% Plot Event time series
-t1 = 58169;%1/26
-t2 = 65651;%1/26
+%t1 = 58169;%1/26
+%t2 = 65651;%1/26
+%Table = readtable('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/2020-01-26_14_00_05.csv', 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
+%t_trim = 33; % trim off data at the end of stand-alone geophone data (in seconds)
+%toffset = 6.2500e-05; % define time offset between wired and stand-alone geophone data (derived imperically)
 %t1 = 21000; %1/27_1 
 %t2 = 25000; %1/27_1
+%Table = readtable('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/2020-01-27_19_44_38.csv', 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
+%t_trim = 20; % trim off data at the end of stand-alone geophone data (in seconds)
+%toffset = 5.7691e-05; % define time offset between wired and stand-alone geophone data (derived imperically)
 %t1 = 14000; %1/27_2 
 %t2 = 16000; %1/27_2
-%t1 = 19600;%1/31
-%t2 = 20400;%1/31
+t1 = 19600;%1/31
+t2 = 20400;%1/31
+Table = readtable('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/2020-01-31_17_15_11.csv', 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
+t_trim = 0; % trim off data at the end of stand-alone geophone data (in seconds)
+toffset = 5.7691e-05; % define time offset between wired and stand-alone geophone data (derived imperically)
 %t1 = 32000;%1/28_1
 %t2 = 33500;%1/28_1
 %t1 = 8500;%1/28_2
 %t2 = 10000;%1/28_2
 
 % Read in stand-alone geophone data
-toffset = 6.2500e-05; % define time offset between wired and stand-alone geophone data (derived imperically)
-t_trim = 33; % trim off data at the end of stand-alone geophone data (in seconds)
 FS_node = 4096;
-Table = readtable('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/2020-01-26_14_00_05.csv', 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
+
 tn = table2array(Table(:,1));
 tn = tn - toffset;
 z_node = table2array(Table(:,[2 5 8 11]));
@@ -43,7 +50,9 @@ end
 y_node = y_node(max(tempvect1):min(tempvect2)-t_trim*FS_node,:);
 
 % interp wired geophone data to same sampling frequency as stand-alone geophone data
-data_interp = interp1(t(t1:t2),data(t1:t2,:),tn,'spline');
+[~,tind1] = min(abs(t-tn(1)));
+[~,tind2] = min(abs(t-tn(end)));
+data_interp = interp1(t(tind1:tind2),data(tind1:tind2,:),tn,'spline');
 
 figure
 k=1;
@@ -51,11 +60,11 @@ for j = [1 4 7 10]
     subplot(8,1,k)
     plot(t(t1:t2),data(t1:t2,j))
     hold on
-    plot(tn,data_interp(:,j))
+    %plot(tn,data_interp(:,j))
     %xlabel('Time')
     %ylabel('Amplitude')
     %datetick('x','HH:MM:SS:FFF','keepticks');
-    xlim([tn(1) tn(end)]);
+    xlim([min([t(t1) tn(1)]) max([t(t2) tn(end)])]);
     %title(date);
     set(gca,'fontsize',12);
     grid on
@@ -65,7 +74,7 @@ end
 for j = 1:4
     subplot(8,1,k)
     plot(tn,z_node(:,j))
-    xlim([tn(1) tn(end)]);
+    xlim([min([t(t1) tn(1)]) max([t(t2) tn(end)])]);
     set(gca,'fontsize',12);
     grid on
     k = k+1;
@@ -75,11 +84,27 @@ end
 figure
 j = 1;
 for i = [1 4 7 10]
-subplot(2,2,j)
-plot(data(t1:t2,i+1)./max(abs(data(t1:t2,i+1))),data(t1:t2,i)./max(abs(data(t1:t2,i))))
+subplot(2,4,j)
+plot(data_interp(:,i+1)./max(abs(data_interp(:,i+1))),data_interp(:,i)./max(abs(data_interp(:,i))))
 hold on
-plot(data(t1:t2,i+2)./max(abs(data(t1:t2,i+2))),data(t1:t2,i)./max(abs(data(t1:t2,i))))
-xlabel('X Axis')
+plot(data_interp(:,i+2)./max(abs(data_interp(:,i+2))),data_interp(:,i)./max(abs(data_interp(:,i))))
+xlabel('H Axis')
+ylabel('Z Axis')
+grid on
+set(gca,'fontsize',20)
+xlim([-1 1])
+ylim([-1 1])
+title(['Geophone ' num2str(j)])
+legend('X-Z','Y-Z')
+j = j+1;
+end
+
+for i = 1:4
+subplot(2,4,j)
+plot(z_node(:,i)./max(abs(z_node(:,i))),x_node(:,i)./max(abs(x_node(:,i))))
+hold on
+plot(z_node(:,i)./max(abs(z_node(:,i))),y_node(:,i)./max(abs(y_node(:,i))))
+xlabel('H Axis')
 ylabel('Z Axis')
 grid on
 set(gca,'fontsize',20)
@@ -175,7 +200,7 @@ bpFilt = designfilt('bandpassfir','FilterOrder',500, ...
          'CutoffFrequency1',8,'CutoffFrequency2',32, ...
          'SampleRate',FS);
 bpFiltnode = designfilt('bandpassfir','FilterOrder',500, ...
-         'CutoffFrequency1',4,'CutoffFrequency2',490, ...
+         'CutoffFrequency1',12,'CutoffFrequency2',20, ...
          'SampleRate',FS_node);
 %fvtool(bpFilt)
 
@@ -191,6 +216,11 @@ for i = 1:4
     xdatafilt(i+4,:) = filtfilt(bpFiltnode,y_node(:,i).');
     ydatafilt(i+4,:) = filtfilt(bpFiltnode,x_node(:,i).');
 end
+
+xdatafilt_p = xdatafilt;
+ydatafilt_p = ydatafilt;
+xdatafilt = xdatafilt_p.*cos(3*pi/2) - ydatafilt_p.*sin(3*pi/2);
+ydatafilt = xdatafilt_p.*sin(3*pi/2) + ydatafilt_p.*cos(3*pi/2);
 
 figure
 k=[1 3 5 7 2 4 6 8];
@@ -241,7 +271,23 @@ end
 % zdatafilt(5,:) = [];
 % zdatafilt(6,:) = [];
 
-% Use phase to estimate direction of arrival
+%% Motion Product Detector
+figure
+plot(xpos,ypos,'ro')
+hold on
+for chn = 1:8
+    datain = [zdatafilt(chn,:); xdatafilt(chn,:); ydatafilt(chn,:)];
+    [X_HiV, Y_HiV, X_est, Y_est] = MPD(datain.',3000);
+    plot(X_est+xpos(chn),Y_est+ypos(chn),'k');
+end
+grid on
+xlim([-550 550])
+ylim([-550 550])
+xlabel('X (m)')
+ylabel('Y (m)')
+set(gca, 'fontsize',20)
+
+%% Use phase to estimate direction of arrival
 psivec_filt = [];
 figure
 for j = 1:8
@@ -283,13 +329,11 @@ hold on
 polarplot(deg2rad(thetavec(locs(ind)))*ones(10,1), linspace(0,15,10))
 end
 
-
-
-
 %% tdoa localization estimate
-c_range = 384;
+c_range = 327;
 N = 1000;
 plotting = 1;
+doMPD = 1;
 
 figure(1)
 plot(xpos,ypos,'ro');
@@ -305,7 +349,7 @@ grid on
 hold on
 
 try
-    [loc_est,c_est,err,tdoa_mat] = loc_est_hyp(zdatafilt,xpos,ypos,1,length(zdatafilt),FS_node,c_range,N,plotting);
+    [loc_est,c_est,err,tdoa_mat] = loc_est_hyp(zdatafilt,xdatafilt,ydatafilt,xpos,ypos,1,length(zdatafilt),FS_node,c_range,N,plotting,doMPD);
 catch
     disp('Skipping this...')
 end
