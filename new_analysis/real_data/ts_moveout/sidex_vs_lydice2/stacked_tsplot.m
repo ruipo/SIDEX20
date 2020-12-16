@@ -8,7 +8,7 @@ for i = 1:length(TT.Properties.VariableNames)
     TT.Properties.VariableNames(i) = {[num2str((i-1)*10) 'm']};
 end
 %smallTTV = TT(1:1024,fliplr([2 4 6 8 10 12 14 16 18 20 22]));
-smallTTV = TT(1:1024,fliplr([2 6 10 14 18 22 26 30 34 38 42 46 50]));
+smallTTV = TT(1:1024,fliplr([2 6 10 14 18 22 26 30 34 38 42]));
 
 filename = 'sidex_vs_lydice_horiz.txt';
 fout = read_moveout_asc(filename);
@@ -17,37 +17,66 @@ for i = 1:length(TT.Properties.VariableNames)
     TT.Properties.VariableNames(i) = {[num2str((i-1)*10) 'm']};
 end
 %smallTTH = TT(1:1024,fliplr([2 4 6 8 10 12 14 16 18 20 22]));
-smallTTH = TT(1:1024,fliplr([2 6 10 14 18 22 26 30 34 38 42 46 50]));
+smallTTH = TT(1:1024,fliplr([2 6 10 14 18 22 26 30 34 38 42]));
 
 figure
 subplot(1,2,1)
-stackedplot(smallTTV)
+handle = stackedplot(smallTTV);
 set(gca,'fontsize',12)
 title('Vertical Source, SP1-V')
+for i = 1:numel(handle.AxesProperties)
+    handle.AxesProperties(i).YLimits = [-0.00005*(1.5^(i)) 0.00005*(1.5^(i))];
+end
 grid on
+
 subplot(1,2,2)
-stackedplot(smallTTH)
+handle = stackedplot(smallTTH);
 set(gca,'fontsize',12)
 title('Vertical Source, SP1-H')
+for i = 1:numel(handle.AxesProperties)
+    handle.AxesProperties(i).YLimits = [-0.00005*(1.5^(i)) 0.00005*(1.5^(i))];
+end
 grid on
 
 z150m = smallTTV(:,4).Variables;
 h150m = smallTTH(:,4).Variables;
 figure
-plot(h150m(1:512)./max(abs(h150m)),z150m(1:512)./max(abs(z150m)))
+subplot(1,3,1)
+plot(h150m(120:190)./max(abs(h150m(120:190))),z150m(120:190)./max(abs(z150m(120:190))))
 xlabel('Horizontal Axis')
 ylabel('Vertical Axis')
 grid on
 set(gca,'fontsize',20)
 xlim([-1 1])
 ylim([-1 1])
-title('H vs. V, Range = 150m')
+title('P-Wave Particle Motion')
+axis square
+subplot(1,3,2)
+plot(h150m(200:280)./max(abs(h150m(200:280))),z150m(200:280)./max(abs(z150m(200:280))))
+xlabel('Horizontal Axis')
+ylabel('Vertical Axis')
+grid on
+set(gca,'fontsize',20)
+xlim([-1 1])
+ylim([-1 1])
+title('S-Wave Particle Motion')
+axis square
+subplot(1,3,3)
+plot(h150m(280:end)./max(abs(h150m(280:end))),z150m(280:end)./max(abs(z150m(280:end))))
+xlabel('Horizontal Axis')
+ylabel('Vertical Axis')
+grid on
+set(gca,'fontsize',20)
+xlim([-1 1])
+ylim([-1 1])
+title('Flexural Wave Partical Motion')
+axis square
 
 %% spec plot
 
 chn = 1;
 FS = 1024;
-L = 32; % Window length (1ms)
+L = 16; % Window length (1ms)
 R = L/2; % Overlap percentage
 NFFT = L; 
 
@@ -63,7 +92,7 @@ subplot(6,1,1)
 imagesc(t,f,20*log10(abs(S1)))
 set(gca,'YDir','normal')
 colormap jet
-caxis([-70 -40])
+caxis([-100 -40])
 colorbar
 %xlim([19 23])
 %ylim([0 200])
@@ -74,7 +103,7 @@ subplot(6,1,2)
 imagesc(t,f,20*log10(abs(S2)))
 set(gca,'YDir','normal')
 colormap jet
-caxis([-70 -40])
+caxis([-100 -40])
 colorbar
 %xlim([19 23])
 %ylim([0 200])
@@ -84,7 +113,7 @@ subplot(6,1,3)
 imagesc(t,f,20*log10(abs(S3)))
 set(gca,'YDir','normal')
 colormap jet
-caxis([-70 -30])
+caxis([-100 -30])
 colorbar
 %xlim([19 23])
 %ylim([0 200])
@@ -94,7 +123,7 @@ subplot(6,1,4)
 imagesc(t,f,20*log10(abs(S4)))
 set(gca,'YDir','normal')
 colormap jet
-caxis([-80 -20])
+caxis([-110 -20])
 colorbar
 %xlim([19 23])
 %ylim([0 200])
@@ -104,7 +133,7 @@ subplot(6,1,5)
 imagesc(t,f,20*log10(abs(S5)))
 set(gca,'YDir','normal')
 colormap jet
-caxis([-85 -10])
+caxis([-115 -10])
 colorbar
 %xlim([19 23])
 %ylim([0 200])
@@ -114,7 +143,7 @@ subplot(6,1,6)
 imagesc(t,f,20*log10(abs(S6)))
 set(gca,'YDir','normal')
 colormap jet
-caxis([-90 -10])
+caxis([-120 -10])
 colorbar
 %xlim([19 23])
 %ylim([0 200])

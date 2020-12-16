@@ -9,6 +9,26 @@ data_cor = data;
 data_cor(:,[2 5 8 11]) = data(:,[2 5 8 11]).*cos(3*pi/2) - data(:,[3 6 9 12]).*sin(3*pi/2);
 data_cor(:,[3 6 9 12]) = data(:,[2 5 8 11]).*sin(3*pi/2) + data(:,[3 6 9 12]).*cos(3*pi/2);
 data_filt = filtfilt(bandfilt,data_cor);
+
+znoise = zeros(1,4);
+index = 1;
+for zz = [1 4 7 10]
+    znoise(index) = mean(abs(data_filt(:,zz)));
+    index = index + 1;
+end
+xnoise = zeros(1,4);
+index = 1;
+for xx = [2 5 8 11]
+    xnoise(index) = mean(abs(data_filt(:,xx)));
+    index = index + 1;
+end
+ynoise = zeros(1,4);
+index = 1;
+for yy = [3 6 9 12]
+    ynoise(index) = mean(abs(data_filt(:,yy)));
+    index = index + 1;
+end
+
 event_inds = xlsread('event_inds.xlsx',1,'B2:C189');
 
 figure
@@ -19,11 +39,126 @@ plot(t,data_filt(:,7))
 plot(t,data_filt(:,10))
 plot(epochtime_event,zeros(length(epochtime_event),1),'*')
 
+%% plot event location and moveout
+i = 9;
+
+event = data_cor(event_inds(i,1):event_inds(i,2),:);
+zevent = event(:,[1 4 7 10]);
+xevent = event(:,[2 5 8 11]);
+yevent = event(:,[3 6 9 12]);
+
+zSNR = 10*log10(max(abs(zevent))./znoise);
+xSNR = 10*log10(max(abs(xevent))./xnoise);
+ySNR = 10*log10(max(abs(yevent))./ynoise);
+SNR_mat = [zSNR; xSNR; ySNR];
+
+geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
+[eventx, eventy]= ll2xy(lat_event(i),long_event(i),mean(geophone_GPS(:,1)),mean(geophone_GPS(:,2)));
+
+deg = rad2deg(atan2(eventy,eventx));
+if deg<0
+    ang_act = 180+deg;
+else
+    ang_act = deg;
+end
+revent = xevent.*cos(deg2rad(ang_act)) - yevent.*sin(deg2rad(ang_act));
+
+taxis = 0:1/FS:size(zevent,1)/FS-(1/FS);
+
+figure
+plot(geophone_loc(:,1),geophone_loc(:,2),'ro');
+hold on
+plot(eventx,eventy ,'k*')
+xlabel('X position (m)')
+ylabel('Y position (m)')
+xlim([-350 350]);
+ylim([-150 350]);
+xL = xlim;
+yL = ylim;
+line([0 0], yL,'color','black');
+line(xL, [0 0],'color','black');
+grid on
+hold on
+set(gca,'fontsize',20)
+
+figure
+subplot(4,2,1)
+plot(taxis, zevent(:,1));
+title('Geophone 1 Vertical Axis')
+set(gca,'fontsize',20)
+ylabel('R = 49.76 m')
+ylim([-0.0025 0.0025])
+grid on
+subplot(4,2,3)
+plot(taxis, zevent(:,3));
+title('Geophone 3 Vertical Axis')
+set(gca,'fontsize',20)
+ylabel('R = 48.76 m')
+ylim([-0.0025 0.0025])
+grid on
+subplot(4,2,5)
+plot(taxis, zevent(:,2));
+title('Geophone 2 Vertical Axis')
+set(gca,'fontsize',20)
+ylabel('R = 29.92 m')
+ylim([-0.0025 0.0025])
+grid on
+subplot(4,2,7)
+plot(taxis, zevent(:,4));
+title('Geophone 4 Vertical Axis')
+set(gca,'fontsize',20)
+ylabel('R = 11.39 m')
+ylim([-0.0025 0.0025])
+grid on
+subplot(4,2,2)
+plot(taxis, revent(:,1));
+title('Geophone 1 Radial Axis')
+set(gca,'fontsize',20)
+ylabel('R = 49.76 m')
+ylim([-0.0025 0.0025])
+grid on
+subplot(4,2,4)
+plot(taxis, revent(:,3));
+title('Geophone 3 Radial Axis')
+set(gca,'fontsize',20)
+ylabel('R = 48.76 m')
+ylim([-0.0025 0.0025])
+grid on
+subplot(4,2,6)
+plot(taxis, revent(:,2));
+title('Geophone 2 Radial Axis')
+set(gca,'fontsize',20)
+ylabel('R = 29.92 m')
+ylim([-0.0025 0.0025])
+grid on
+subplot(4,2,8)
+plot(taxis, revent(:,4));
+title('Geophone 4 Radial Axis')
+set(gca,'fontsize',20)
+ylabel('R = 11.39 m')
+ylim([-0.0025 0.0025])
+grid on
+
+figure
+for i = 1:4
+    subplot(2,2,i)
+    plot(movmean(zevent(500:end,i),50)./max(abs(movmean(zevent(500:end,i),50))),movmean(revent(500:end,i),50)./max(abs(movmean(revent(500:end,i),50))))
+    xlabel('H-axis')
+    ylabel('Z-axis')
+    xlim([-1 1])
+    ylim([-1 1])
+    grid on
+    axis square
+    title(['Geophone ' num2str(i)])
+    set(gca,'fontsize',20)
+end
+
+
 %% Spectrogram View
 figure
 win_len = 128;
 
-plotting = 1;
+plotting = 0;
 Sz_vec_mat = zeros(length(event_inds),65);
 Sx_vec_mat = zeros(length(event_inds),65);
 Sy_vec_mat = zeros(length(event_inds),65);
@@ -101,7 +236,7 @@ ylim([0 60])
 subplot(3,1,2)
 plot(fvec, 20*log10(abs(Sx_vec_mat)./1E-6),'.');
 hold on
-plot(fvec, nanmean(20*log10(abs(Sz_vec_mat)./1E-6),1),'k','linewidth',2);
+plot(fvec, nanmean(20*log10(abs(Sx_vec_mat)./1E-6),1),'k','linewidth',2);
 ylabel('dB re 1 uPa')
 title('X-axis')
 set(gca,'fontsize',20)
@@ -109,7 +244,7 @@ ylim([0 60])
 subplot(3,1,3)
 plot(fvec, 20*log10(abs(Sy_vec_mat)./1E-6),'.');
 hold on
-plot(fvec, nanmean(20*log10(abs(Sz_vec_mat)./1E-6),1),'k','linewidth',2);
+plot(fvec, nanmean(20*log10(abs(Sy_vec_mat)./1E-6),1),'k','linewidth',2);
 xlabel('Frequency (Hz)')
 title('Y-axis')
 set(gca,'fontsize',20)
@@ -220,23 +355,42 @@ for ee = 1:188
     if ~isnan(event_inds(ee,1))
         [event1x, event1y]= ll2xy(lat_event(ee),long_event(ee),mean(geophone_GPS(:,1)),mean(geophone_GPS(:,2)));
         geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
-        event = data_cor(event_inds(ee,1):event_inds(ee,2),:);
+        event = data_filt(event_inds(ee,1):event_inds(ee,2)+1000,:);
         plot(geophone_loc(:,1),geophone_loc(:,2),'ro')
         hold on
         plot(event1x, event1y, 'b*')
+        
+        zSNR = 10*log10(max(abs(event(:,[1 4 7 10])))./znoise);
+        xSNR = 10*log10(max(abs(event(:,[2 5 8 11])))./xnoise);
+        ySNR = 10*log10(max(abs(event(:,[3 6 9 12])))./ynoise);
+        SNR_mat = [zSNR; xSNR; ySNR];
 
         for chn = 1:4
-            datain = event(:,chn+(chn-1)*2:chn+(chn-1)*2+2);
-            [X_HiV, Y_HiV, X_est, Y_est] = MPD(datain,500);
-            plot(X_est+geophone_loc(chn,1),Y_est+geophone_loc(chn,2),'k');
+            if min(SNR_mat(:,chn)) > 10
+                chn
+                datain = event(1:end,chn+(chn-1)*2:chn+(chn-1)*2+2);
+                [X_HiV, Y_HiV, X_est, Y_est] = MPD(datain,200);
+%                 plot(movmean(datain,50))
+%                 pause
+%                 clf
+                plot(X_est+geophone_loc(chn,1),Y_est+geophone_loc(chn,2),'k');
+            else
+                datain = event(1:end,chn+(chn-1)*2:chn+(chn-1)*2+2);
+                [X_HiV, Y_HiV, X_est, Y_est] = MPD(datain,200);
+%                 plot(movmean(datain,50))
+%                 pause
+%                 clf
+                plot(X_est+geophone_loc(chn,1),Y_est+geophone_loc(chn,2),'r');
+            end
         end
         grid on
-        title(['Event number ' num2str(ee)]);
-        xlim([-250 250])
-        ylim([-250 250])
+        title(['Calibration Event ' num2str(ee)]);
+        xlim([-150 150])
+        ylim([-150 150])
         xlabel('X (m)')
         ylabel('Y (m)')
         set(gca, 'fontsize',20)
+        axis square
         pause
         clf;
     end
@@ -265,7 +419,7 @@ for ee = 1:188
             xlim([-1 1])
             ylim([-1 1])
             grid on
-            %axis equal
+            axis square
             title(['Geophone ' num2str(chn)])
             set(gca,'fontsize',20)
             p = p+1;
@@ -276,7 +430,7 @@ for ee = 1:188
             xlim([-1 1])
             ylim([-1 1])
             grid on
-            %axis equal
+            axis square
             title(['Geophone ' num2str(chn)])
             set(gca,'fontsize',20)
             p = p+1;
@@ -463,6 +617,9 @@ end
 zevent = data_filt(:,[1 4 7 10]).';
 xevent = data_filt(:,[2 5 8 11]).';
 yevent = data_filt(:,[3 6 9 12]).'; 
+zeventuf = data_cor(:,[1 4 7 10]).';
+xeventuf = data_cor(:,[2 5 8 11]).';
+yeventuf = data_cor(:,[3 6 9 12]).'; 
 
 %plot xyz time series for event i
 i = 1;
@@ -484,6 +641,7 @@ legend('z-dir','x-dir','y-dir')
 %ylabel('Amplitude')
 %datetick('x','HH:MM:SS:FFF','keepticks');
 xlim([t(t1) t(t2)]);
+ylim([-0.002 0.002])
 %title(date);
 set(gca,'fontsize',12);
 grid on
@@ -493,14 +651,15 @@ end
 geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
 
 FS = 1000;
-c_range = 259;
-N = 1000;
+c_range = 242;
+N = 5000;
 plotting = 1;
+noise_mat = [znoise; xnoise; ynoise];
 
 figure
 plot(geophone_loc(:,1),geophone_loc(:,2),'ro');
 xlabel('X position (m)')
-xlabel('Y position (m)')
+ylabel('Y position (m)')
 xlim([-350 350]);
 ylim([-150 350]);
 xL = xlim;
@@ -514,7 +673,7 @@ pos_est_mat = zeros(2,length(event_inds));
 c_est_mat = zeros(length(event_inds),1);
 error_mat = zeros(length(event_inds),1);
 
-for i = 2
+for i = 166
     i 
     
     ss = event_inds(i,1);
@@ -527,11 +686,11 @@ for i = 2
         [eventx, eventy]= ll2xy(lat_event(i),long_event(i),mean(geophone_GPS(:,1)),mean(geophone_GPS(:,2)));
         calib_act = [eventx eventy];
 
-        try
-            [loc_est,c_est,err,tdoa_mat] = loc_est_calib_testfn(zevent,xevent, yevent,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act);
-        catch
-            disp('Skipping this...')
-        end
+        %try
+            [loc_est,c_est,err,~] = loc_est_calib_testfn(zevent,xevent, yevent,zeventuf,xeventuf, yeventuf,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act,noise_mat);
+        %catch
+        %    disp('Skipping this...')
+        %end
 
         pos_est_mat(:,i) = loc_est;
         c_est_mat(i) = c_est;
@@ -588,11 +747,11 @@ set(gca,'fontsize',20);
 
 h(1) = plot(NaN,NaN,'ro','MarkerFaceColor', 'r');
 h(2) = plot(NaN,NaN,'ks','MarkerSize',8);
-h(3) = plot(NaN,NaN,'r*','MarkerSize',6);
-h(4) = plot(NaN,NaN,'b*','MarkerSize',6);
-h(5) = plot(NaN,NaN,'m*','MarkerSize',6);
-h(6) = plot(NaN,NaN,'g*','MarkerSize',6);
-legend(h, 'Geophone Locations','True Location','Estimated Location (v < 250m/s)','Estimated Location (250m/s <= v < 500m/s)','Estimated Location (500m/s <= v < 750m/s)','Estimated Location (v >= 750m/s)');
+h(3) = plot(NaN,NaN,'b*','MarkerSize',6);
+%h(4) = plot(NaN,NaN,'b*','MarkerSize',6);
+%h(5) = plot(NaN,NaN,'m*','MarkerSize',6);
+%h(6) = plot(NaN,NaN,'g*','MarkerSize',6);
+legend(h, 'Geophone Locations','True Location','Estimated Location');% (v < 250m/s)','Estimated Location (250m/s <= v < 500m/s)','Estimated Location (500m/s <= v < 750m/s)','Estimated Location (v >= 750m/s)');
 set(0,'DefaultLegendAutoUpdate','off')
 
 for i = 1:188
@@ -601,9 +760,9 @@ for i = 1:188
     calib_act = [eventx eventy];
     
     c_est = c_est_mat(i);
-    if c_est < 250
+    if c_est < 200
         color = 'r';
-    elseif (250 <= c_est) && (c_est < 500)
+    elseif (200 <= c_est) && (c_est < 500)
         color = 'b';
     elseif (500 <= c_est) && (c_est < 750)
         color = 'm';
@@ -616,18 +775,18 @@ for i = 1:188
     plot(eventx,eventy,'ks','MarkerSize',8,'linewidth',1.25);
     plot(pos_est_mat(1,i),pos_est_mat(2,i),[color '*'],'MarkerSize',6,'linewidth',1.25);
     quiver(pos_est_mat(1,i),pos_est_mat(2,i),eventx-pos_est_mat(1,i),eventy-pos_est_mat(2,i),0,'color',[1 0.5 1]);
-    saveas(gcf,[path,'loc_est_figs/' num2str(i) '.png']);
+    saveas(gcf,[path,'loc_est_figs2/' num2str(i) '.png']);
     pause(0.1)
 end
 
 %% Location Estimation Results movie
 
-testf = dir([path 'loc_est_figs/*.png']);
+testf = dir([path 'loc_est_figs2/*.png']);
 [~, reindex] = sort( str2double( regexp( {testf.name}, '\d+', 'match', 'once' )));
 testf = testf(reindex);
 
 % Create a VideoWriter object to write the video out to a new, different file.
-  writerObj = VideoWriter([path 'loc_est_figs/loc_est.avi']);
+  writerObj = VideoWriter([path 'loc_est_figs2/loc_est.avi']);
   writerObj.FrameRate = 8;
   open(writerObj);
   

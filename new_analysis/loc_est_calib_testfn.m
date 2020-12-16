@@ -4,7 +4,7 @@
 % Last updated: 02/28/2020
 %-----------------------------%
 
-function [loc_est,c_est,err,tdoa_mat] = loc_est_calib_testfn(zdata,xdata,ydata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act)
+function [loc_est,c_est,err,tdoa_mat] = loc_est_calib_testfn(zdata,xdata,ydata,zdatauf,xdatauf,ydatauf,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act,noise_mat)
 % Estimates the location of events recorded on the z-axis channels. 
 % Input data from x/y axis as zdata if want to estimate location of event on those axes. 
 
@@ -30,13 +30,21 @@ function [loc_est,c_est,err,tdoa_mat] = loc_est_calib_testfn(zdata,xdata,ydata,x
 % tdoa_mat - time difference of arrival matrix of input data;
 %------------------------------------------------------------------------------------------------------------------------------------------------%
 
-warning('off','all')  
+warning('off','all') 
+
+% SNR Calculation
+
+zSNR = max(abs(zdata(:,start_sample+500:end_sample).'))./noise_mat(1,:);
+xSNR = max(abs(xdata(:,start_sample+500:end_sample).'))./noise_mat(2,:);
+ySNR = max(abs(ydata(:,start_sample+500:end_sample).'))./noise_mat(3,:);
+SNR_mat = [zSNR; xSNR; ySNR];
+
 
 % MPD using z,x-y axis data
-mpd_mat = zeros(500,2,size(zdata,1));
-for chn = 1:size(zdata,1)
-    datain = [zdata(chn,start_sample:end_sample); xdata(chn,start_sample:end_sample); ydata(chn,start_sample:end_sample)];
-    [~, ~, X_est, Y_est] = MPD(datain.',500);
+mpd_mat = zeros(ceil(N/2),2,size(zdata,1));
+for chn = 1:size(zdatauf,1)
+    datain = [zdata(chn,start_sample+500:end_sample); xdata(chn,start_sample+500:end_sample); ydata(chn,start_sample+500:end_sample)];
+    [~, ~, X_est, Y_est] = MPD(datain.',200);
 
     mpd_mat(:,1,chn) = X_est+xpos(chn);
     mpd_mat(:,2,chn) = Y_est+ypos(chn);
@@ -64,9 +72,13 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     %find midpoints, focal radii, and rotation angles of all receiver pairs
     x_mat = [];
     y_mat = [];
+    SNR_list = [];
+    ang_list = [];
     
     for i = 1:length(xpos)-1
-        for j = i+1:length(xpos) %for reach receiver pair
+        for j = i+1:length(xpos) %for each receiver pair
+            
+            snr = min([SNR_mat(1,i) SNR_mat(1,j)]); %get min SNR of receiver pair
 
             p1 = [xpos(i),ypos(i)]; %position of 1st receiver
             p2 = [xpos(j),ypos(j)]; %position of 2nd receiver
@@ -77,7 +89,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
 
             if abs(p2(1)-p1(1)) >= abs(p2(2)-p1(2)) %check orientation of hyperbola
                 orientation = 1; %horizontal
-                disp(orientation)
+                %disp(orientation)
                 loc_pre_rotation = [c 0]; %location of right receiver before rotation
 
                 if p1(1)-m(1) >= 0 %check to see which receiver is the right receiver
@@ -134,7 +146,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
             %repeat previous part for vertical hyperbola
             elseif abs(p2(1)-p1(1)) < abs(p2(2)-p1(2)) 
                 orientation = 2; 
-                disp(orientation)
+                %disp(orientation)
                 loc_pre_rotation = [0 c];
 
                 if p1(2)-m(2) >= 0
@@ -190,6 +202,8 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
            %add all plotted hyperbola coordinates into a matrix 
            x_mat = [x_mat;x]; 
            y_mat = [y_mat;y];
+           SNR_list = [SNR_list; snr];
+           ang_list = [ang_list; ang];
 
         end
     end
@@ -205,91 +219,22 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
         end
         x_mat = [x_mat; mpd_mat(:,1,chn).']; 
         y_mat = [y_mat; mpd_mat(:,2,chn).'];
+        SNR_list = [SNR_list; min(SNR_mat(:,chn))];
     end
     
 
    %-------------------------------------------------------------------------------------------------------------------------------------------------%
+   % Generate ambiguity surface
+   
    gs = -350;
    ge = 350;
-   dg = 0.1;
+   dg = 1;
    gridlist = gs:dg:ge;
-   %gridlist2 = -350:1:350;
-   sigma = 50;
    
-   prob_grid = ones(length(gridlist));
-   figure
-   xlim([-350 350])
-   ylim([-350 350])
-   
-    
-   for n = 1:size(x_mat,1)
-   
-       interp_grid = zeros(length(gridlist));
-       
-       if issorted(x_mat(n,:)) || issorted(fliplr(x_mat(n,:)))
-           y_interp = interp1(x_mat(n,:), y_mat(n,:), gridlist, 'spline');
-           check1 = gs<y_interp;
-           check2 = y_interp<ge;
-           check = check1.*check2;
-           xgridlist = gridlist(logical(check));
-           ygridlist = y_interp(logical(check));
-           for ent = 1:length(xgridlist)
-               [~,ent1] = min(abs(gridlist-xgridlist(ent)));
-               [~,ent2] = min(abs(gridlist-ygridlist(ent)));
-               interp_grid(:,ent1) = 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2));
-           end
-          
-       elseif issorted(y_mat(n,:)) || issorted(fliplr(y_mat(n,:)))
-           x_interp = interp1(y_mat(n,:), x_mat(n,:), gridlist, 'spline');
-           check1 = gs<x_interp;
-           check2 = x_interp<ge;
-           check = check1.*check2;
-           ygridlist = gridlist(logical(check));
-           xgridlist = x_interp(logical(check));
-           for ent = 1:length(ygridlist)
-               [~,ent1] = min(abs(gridlist-ygridlist(ent)));
-               [~,ent2] = min(abs(gridlist-xgridlist(ent)));
-               interp_grid(ent1,:) = 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2));
-           end
-           
-       else
-           check1 = gs<x_mat(n,:);
-           check2 = x_mat(n,:)<ge;
-           check3 = gs<y_mat(n,:);
-           check4 = y_mat(n,:)<ge;
-           check = check1.*check2.*check3.*check4;
-           
-           xregion = x_mat(n,:);
-           xregion = xregion(logical(check));
-           xregion2 = movmean(xregion,2);
-           yregion = y_mat(n,:);
-           yregion = yregion(logical(check));
-           yregion2 = movmean(yregion,2);
-           
-           xregions = [xregion xregion2];
-           yregions = [yregion yregion2];
-           
-           for ent = 1:length(xregions)
-               [~,ent1] = min(abs(gridlist-xregions(ent)));
-               [~,ent2] = min(abs(gridlist-yregions(ent)));
-               interp_grid(:,ent1) = (interp_grid(:,ent1).' + 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2)))./2;             
-           end
-           
-       end
-       
-       interp_grid = interp_grid./sum(interp_grid(:));
-       prob_grid = prob_grid.*interp_grid;
-       %prob_grid = prob_grid./sum(prob_grid(:));
-       imagesc(gridlist,gridlist,prob_grid*100)
-       set(gca,'YDir','normal')
-       colormap jet
-       pause;
-       %clf;
-       
-   end
-  
+   [x_est,y_est,ambi_map] = genAmbiMap(gridlist, x_mat, y_mat, SNR_list, ang_list);
 
-
+   disp(x_est)
+   disp(y_est)
    %------------------------------------------------------------------------------------------------------------------------------------------------%
    %calculate the intersections of all hyperbolas and circles
     x_intlist = [];

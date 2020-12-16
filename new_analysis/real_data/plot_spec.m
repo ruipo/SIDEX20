@@ -1,9 +1,9 @@
 %% Plot Event time series
-%t1 = 58169;%1/26
-%t2 = 65651;%1/26
-%Table = readtable('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/2020-01-26_14_00_05.csv', 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
-%t_trim = 33; % trim off data at the end of stand-alone geophone data (in seconds)
-%toffset = 6.2500e-05; % define time offset between wired and stand-alone geophone data (derived imperically)
+t1 = 58169;%1/26
+t2 = 65651;%1/26
+Table = readtable('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/2020-01-26_14_00_05.csv', 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
+t_trim = 33; % trim off data at the end of stand-alone geophone data (in seconds)
+toffset = 6.2500e-05; % define time offset between wired and stand-alone geophone data (derived imperically)
 %t1 = 21000; %1/27_1 
 %t2 = 25000; %1/27_1
 %Table = readtable('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/2020-01-27_19_44_38.csv', 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
@@ -11,11 +11,11 @@
 %toffset = 5.7691e-05; % define time offset between wired and stand-alone geophone data (derived imperically)
 %t1 = 14000; %1/27_2 
 %t2 = 16000; %1/27_2
-t1 = 19600;%1/31
-t2 = 20400;%1/31
-Table = readtable('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/2020-01-31_17_15_11.csv', 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
-t_trim = 0; % trim off data at the end of stand-alone geophone data (in seconds)
-toffset = 5.7691e-05; % define time offset between wired and stand-alone geophone data (derived imperically)
+%t1 = 19600;%1/31
+%t2 = 20400;%1/31
+%Table = readtable('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/2020-01-31_17_15_11.csv', 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
+%t_trim = 0; % trim off data at the end of stand-alone geophone data (in seconds)
+%toffset = 5.7691e-05; % define time offset between wired and stand-alone geophone data (derived imperically)
 %t1 = 32000;%1/28_1
 %t2 = 33500;%1/28_1
 %t1 = 8500;%1/28_2
@@ -54,11 +54,14 @@ y_node = y_node(max(tempvect1):min(tempvect2)-t_trim*FS_node,:);
 [~,tind2] = min(abs(t-tn(end)));
 data_interp = interp1(t(tind1:tind2),data(tind1:tind2,:),tn,'spline');
 
+xdata = data(:,[2 5 8 11]).*cos(3*pi/2) - data(:,[3 6 9 12]).*sin(3*pi/2);
+ydata = data(:,[2 5 8 11]).*sin(3*pi/2) + data(:,[3 6 9 12]).*cos(3*pi/2);
+
 figure
 k=1;
-for j = [1 4 7 10]
+for j = [1 2 3 4]%j = [1 4 7 10]
     subplot(8,1,k)
-    plot(t(t1:t2),data(t1:t2,j))
+    plot(t(t1:t2),ydata(t1:t2,j))
     hold on
     %plot(tn,data_interp(:,j))
     %xlabel('Time')
@@ -66,51 +69,58 @@ for j = [1 4 7 10]
     %datetick('x','HH:MM:SS:FFF','keepticks');
     xlim([min([t(t1) tn(1)]) max([t(t2) tn(end)])]);
     %title(date);
+    ylim([-0.03 0.03])
+    ylabel(['G' num2str(k)])
     set(gca,'fontsize',12);
     grid on
+    set(gca,'fontsize',15)
     k = k+1;
 end
 
 for j = 1:4
     subplot(8,1,k)
-    plot(tn,z_node(:,j))
+    plot(tn,y_node(:,j))
     xlim([min([t(t1) tn(1)]) max([t(t2) tn(end)])]);
     set(gca,'fontsize',12);
     grid on
+    ylim([-0.03 0.03])
+    ylabel(['N' num2str(j)])
+    set(gca,'fontsize',15)
     k = k+1;
 end
     
 %% X-Z, Y-Z plot
+n = 50;
 figure
 j = 1;
 for i = [1 4 7 10]
 subplot(2,4,j)
-plot(data_interp(:,i+1)./max(abs(data_interp(:,i+1))),data_interp(:,i)./max(abs(data_interp(:,i))))
+plot(movmean(data_interp(:,i+1),n)./max(abs(movmean(data_interp(:,i+1),n))),movmean(data_interp(:,i),n)./max(abs(movmean(data_interp(:,i),n))))
 hold on
-plot(data_interp(:,i+2)./max(abs(data_interp(:,i+2))),data_interp(:,i)./max(abs(data_interp(:,i))))
+plot(movmean(data_interp(:,i+2),n)./max(abs(movmean(data_interp(:,i+2),n))),movmean(data_interp(:,i),n)./max(abs(movmean(data_interp(:,i),n))))
 xlabel('H Axis')
 ylabel('Z Axis')
 grid on
 set(gca,'fontsize',20)
 xlim([-1 1])
 ylim([-1 1])
-title(['Geophone ' num2str(j)])
+title(['G' num2str(j)])
 legend('X-Z','Y-Z')
 j = j+1;
 end
 
 for i = 1:4
 subplot(2,4,j)
-plot(z_node(:,i)./max(abs(z_node(:,i))),x_node(:,i)./max(abs(x_node(:,i))))
+plot(movmean(x_node(:,i),n)./max(abs(movmean(x_node(:,i),n))),movmean(z_node(:,i),n)./max(abs(movmean(z_node(:,i),n))))
 hold on
-plot(z_node(:,i)./max(abs(z_node(:,i))),y_node(:,i)./max(abs(y_node(:,i))))
+plot(movmean(y_node(:,i),n)./max(abs(movmean(y_node(:,i),n))),movmean(z_node(:,i),n)./max(abs(movmean(z_node(:,i),n))))
 xlabel('H Axis')
 ylabel('Z Axis')
 grid on
 set(gca,'fontsize',20)
 xlim([-1 1])
 ylim([-1 1])
-title(['Geophone ' num2str(j)])
+title(['N' num2str(i)])
 legend('X-Z','Y-Z')
 j = j+1;
 end
@@ -195,10 +205,12 @@ end
 zdata = data_interp(:,[1 4 7 10]).';
 xdata = data_interp(:,[2 5 8 11]).';
 ydata = data_interp(:,[3 6 9 12]).';
+for g = 1:4
+    zdata(g+4,:) = z_node(:,g).';
+    xdata(g+4,:) = y_node(:,g).';
+    ydata(g+4,:) = x_node(:,g).';
+end
 
-bpFilt = designfilt('bandpassfir','FilterOrder',500, ...
-         'CutoffFrequency1',8,'CutoffFrequency2',32, ...
-         'SampleRate',FS);
 bpFiltnode = designfilt('bandpassfir','FilterOrder',500, ...
          'CutoffFrequency1',12,'CutoffFrequency2',20, ...
          'SampleRate',FS_node);
@@ -276,8 +288,8 @@ figure
 plot(xpos,ypos,'ro')
 hold on
 for chn = 1:8
-    datain = [zdatafilt(chn,:); xdatafilt(chn,:); ydatafilt(chn,:)];
-    [X_HiV, Y_HiV, X_est, Y_est] = MPD(datain.',3000);
+    datain = [zdata(chn,:); xdata(chn,:); ydata(chn,:)];
+    [X_HiV, Y_HiV, X_est, Y_est] = MPD(movmean(datain(:,1:20000).',50),400);
     plot(X_est+xpos(chn),Y_est+ypos(chn),'k');
 end
 grid on
@@ -330,10 +342,10 @@ polarplot(deg2rad(thetavec(locs(ind)))*ones(10,1), linspace(0,15,10))
 end
 
 %% tdoa localization estimate
-c_range = 327;
+c_range = 370;
 N = 1000;
 plotting = 1;
-doMPD = 1;
+doMPD = 0;
 
 figure(1)
 plot(xpos,ypos,'ro');
@@ -349,7 +361,7 @@ grid on
 hold on
 
 try
-    [loc_est,c_est,err,tdoa_mat] = loc_est_hyp(zdatafilt,xdatafilt,ydatafilt,xpos,ypos,1,length(zdatafilt),FS_node,c_range,N,plotting,doMPD);
+    [loc_est,c_est,err,tdoa_mat] = loc_est_hyp(zdatafilt([1 2 3 4 6 8],:),xdatafilt([1 2 3 4 6 8],:),ydatafilt([1 2 3 4 6 8],:),zdata([1 2 3 4 6 8],:),xdata([1 2 3 4 6 8],:),ydata([1 2 3 4 6 8],:),xpos([1 2 3 4 6 8]),ypos([1 2 3 4 6 8]),1,length(zdatafilt),FS_node,c_range,N,plotting,doMPD);
 catch
     disp('Skipping this...')
 end

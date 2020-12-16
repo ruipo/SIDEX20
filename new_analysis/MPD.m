@@ -14,18 +14,21 @@ X_HiV = Y_HiV;
 vzy = vz.*vy;
 vzx = vz.*vx;
 
-for w = 1:wins
-    Y_HiV(w) = mean(vzy(w*k-k+1:w*k));
-    X_HiV(w) = mean(vzx(w*k-k+1:w*k));
-end
+Y_HiV = movmean(vzy,k);
+X_HiV = movmean(vzx,k);
 
-
-% Y_HiV = movmean(vz.*vy,k);
-% X_HiV = movmean(vz.*vx,k);
+% for w = 1:wins
+%     Y_HiV(w) = mean(vzy(w*k-k+1:w*k));
+%     X_HiV(w) = mean(vzx(w*k-k+1:w*k));
+% end
 
 xcal = X_HiV;%*cos(deg2rad(theta))-Y_HiV*sin(deg2rad(theta));
 ycal = Y_HiV;%X_HiV*sin(deg2rad(theta))+Y_HiV*cos(deg2rad(theta));
 
-B = xcal\ycal;
-X_est = [-1000:4:999];
-Y_est = X_est*B;
+% B = xcal\ycal;
+% X_est = [-1000:4:999];
+% Y_est = X_est*B;
+
+X_est = linspace(-1000,1000,2500);
+p = polyfit(xcal,ycal,1);
+Y_est = polyval(p,X_est);

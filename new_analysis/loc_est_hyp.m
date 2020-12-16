@@ -4,7 +4,7 @@
 % Last updated: 02/28/2020
 %-----------------------------%
 
-function [loc_est,c_est,err,tdoa_mat] = loc_est_hyp(zdata,xdata,ydata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,doMPD)
+function [loc_est,c_est,err,tdoa_mat] = loc_est_hyp(zdata,xdata,ydata,zdatauf,xdatauf,ydatauf,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,doMPD)
 % Estimates the location of events recorded on the z-axis channels. 
 % Input data from x/y axis as zdata if want to estimate location of event on those axes. 
 
@@ -35,8 +35,8 @@ warning('off','all')
 % MPD using z,x-y axis data
 mpd_mat = zeros(500,2,size(zdata,1));
 for chn = 1:size(zdata,1)
-    datain = [zdata(chn,start_sample:end_sample); xdata(chn,start_sample:end_sample); ydata(chn,start_sample:end_sample)];
-    [~, ~, X_est, Y_est] = MPD(datain.',2000);
+    datain = [zdatauf(chn,start_sample:end_sample); xdatauf(chn,start_sample:end_sample); ydatauf(chn,start_sample:end_sample)];
+    [~, ~, X_est, Y_est] = MPD(movmean(datain(:,1:20000).',50),400);
 
     mpd_mat(:,1,chn) = X_est+xpos(chn);
     mpd_mat(:,2,chn) = Y_est+ypos(chn);

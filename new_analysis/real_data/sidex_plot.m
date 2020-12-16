@@ -1,17 +1,17 @@
 
 %% set directory
-prefix = '/Volumes/RUIC_Backup/SIDEX20_data/sidex_2020-01-31/';
+prefix = '/Volumes/RUIC_Backup/SIDEX20_data/sidex_2020-01-26/';
 directory = dir([prefix 'Sidex*.txt']);
 date = directory(5).name(7:14); % records the date that the data was collected
 data = [];
 FS = 1000;
 good_chn = [1:16]; %choose chns to be plotted
-first_file = 735; %choose the first file to be read
+first_file = 538; %choose the first file to be read
 cycle = 0;
 
 %% plot a portion of the directory
 
-num_files = 1; %choose the number of datafiles to be plotted
+num_files = 2; %choose the number of datafiles to be plotted
 data = [];
 count = 0;
 datenumlist = zeros(num_files,1);
