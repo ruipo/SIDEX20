@@ -29,6 +29,6 @@ ycal = Y_HiV;%X_HiV*sin(deg2rad(theta))+Y_HiV*cos(deg2rad(theta));
 % X_est = [-1000:4:999];
 % Y_est = X_est*B;
 
-X_est = linspace(-1000,1000,2500);
+X_est = linspace(-1500,1500,500);
 p = polyfit(xcal,ycal,1);
 Y_est = polyval(p,X_est);
