@@ -132,11 +132,11 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
                     plot(p1(1),p1(2),'ko');
                     hold on
                     plot(p2(1),p2(2),'ko');
-                    plot(x,y,'r');
+                    plot(x,y,'k','linewidth',1.5);
                     xL = xlim;
                     yL = ylim;
-                    line([0 0], yL,'color','black');
-                    line(xL, [0 0],'color','black');
+                    %line([0 0], yL,'color','black');
+                    %line(xL, [0 0],'color','black');
                     pause
                     grid on
                 end
@@ -188,11 +188,11 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
                     plot(p1(1),p1(2),'ko');
                     hold on
                     plot(p2(1),p2(2),'ko');
-                    plot(x,y,'r');
+                    plot(x,y,'k','linewidth',1.5);
                     xL = xlim;
                     yL = ylim;
-                    line([0 0], yL,'color','black');
-                    line(xL, [0 0],'color','black');
+                    %line([0 0], yL,'color','black');
+                    %line(xL, [0 0],'color','black');
                     pause
                     grid on
                 end
@@ -231,19 +231,19 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
    dg = 1;
    gridlist = gs:dg:ge;
    
-   [x_estlist,y_estlist,~] = genAmbiMap(gridlist, x_mat, y_mat, SNR_list, ang_list, plotmap);
-   errortry = zeros(length(x_estlist),1);
-
-    for ll = 1:length(x_estlist)
-        xtry = x_estlist(ll);
-        ytry = y_estlist(ll);
-        tdoa_sim_mat = tdoa_sim(xtry,ytry,c0,xpos,ypos); %calculated the tdoa matrix as if the event occurred at the estimated location with the assumed propagation speed. 
-        errortry(ll) = sqrt(sum(sum((tdoa_mat - tdoa_sim_mat).^2))); %calculate the error of the simulated tdoa matrix and the actual tdoa matrix. 
-    end
-
-    [~,erloc] = min(errortry);
-    x_est = x_estlist(erloc);
-    y_est = y_estlist(erloc);
+   [x_est,y_est,~] = genAmbiMap(gridlist, x_mat, y_mat, SNR_list, ang_list, plotmap);
+%    errortry = zeros(length(x_estlist),1);
+% 
+%     for ll = 1:length(x_estlist)
+%         xtry = x_estlist(ll);
+%         ytry = y_estlist(ll);
+%         tdoa_sim_mat = tdoa_sim(xtry,ytry,c0,xpos,ypos); %calculated the tdoa matrix as if the event occurred at the estimated location with the assumed propagation speed. 
+%         errortry(ll) = sqrt(sum(sum((tdoa_mat - tdoa_sim_mat).^2))); %calculate the error of the simulated tdoa matrix and the actual tdoa matrix. 
+%     end
+% 
+%     [~,erloc] = min(errortry);
+%     x_est = x_estlist(erloc);
+%     y_est = y_estlist(erloc);
 
     loc_est = [x_est;y_est];
 %    %------------------------------------------------------------------------------------------------------------------------------------------------%
@@ -316,22 +316,22 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     if plotmap ~= 0
         path = '/Users/Rui/Documents/Graduate/Research/SIDEX/SIDEX20/new_analysis/';
         figure(gcf);
-        plot(loc_est(1),loc_est(2),'r*');
-        %plot(calib_act(1),calib_act(2),'r.','MarkerSize',15)
+        %plot(calib_act(1),calib_act(2),'k*','MarkerSize',8,'linewidth',1.5);
+        plot(loc_est(1),loc_est(2),'c*','MarkerSize',8,'linewidth',1.5);
+        plot(xpos,ypos,'k.', 'MarkerSize',30);
         hold off
 
         xlabel('X position (m)')
         ylabel('Y position (m)')
-        title(['propagation speed = ', num2str(c0), ' m/s']);
-        xlim([-350 350]);
-        ylim([-150 350]);
-        legend('Ambiguity Map Peaks','Estimated Location')%,'True Location')
+        title(['Propagation Speed = ', num2str(c0), ' m/s']);
+        xlim([-1000 1000]);
+        ylim([-1000 1000]);
+        legend('Estimated Location','Cabled Geophones')
         
 %         disp(['x estimate = ', num2str(loc_est(1)), '; y estimate = ',num2str(loc_est(2)) '.']);
 %         disp(['propagation speend estimate = ', num2str(c0), 'm/s.']);
 %         disp(['estimate error = ', num2str(error(ccount)), '.']);
-        saveas(gcf,[path,'real_data/loc_est_results_cabled_only/' num2str(ploti) '.png']);
-        pause(0.1)
+        saveas(gcf,[path,'/real_data/loc_est_results_ambimax_nodes_only/' num2str(ploti) '.png']);
         %close all
     end
 % % STOP EARLY TO SAVE COMPUTATION TIME    

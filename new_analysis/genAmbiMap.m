@@ -1,16 +1,19 @@
-function [x_estlist,y_estlist,ambi_map] = genAmbiMap(gridlist, x_mat, y_mat, SNR_list, ang_list, plotmap)
+function [x_estlist,y_estlist,prob_mat] = genAmbiMap(gridlist, x_mat, y_mat, SNR_list, ang_list, plotmap)
      
    ambi_map = zeros(length(gridlist));
+   %skip = 0;
     
    for n = 1:size(x_mat,1)
        n
        sigma = -50/(1+20*exp(-0.16*SNR_list(n)))+53;
        sigma = round(sigma);
-       %disp(sigma)
-       if sigma >= 45
-           continue
+       disp(sigma)
+       if sigma > 50
+           %skip = skip+1;
+           %continue
+           sigma = 50;
        end
-       sigma 
+       %sigma 
        % initialize interp_grid matrix
        interp_grid = zeros(length(gridlist));
        
@@ -105,53 +108,57 @@ function [x_estlist,y_estlist,ambi_map] = genAmbiMap(gridlist, x_mat, y_mat, SNR
        end
        
        % Normalize interp_grid before adding to ambi_map
-       %interp_grid = interp_grid./sum(interp_grid(:));
        ambi_map = ambi_map + interp_grid;
-       %prob_grid = prob_grid./sum(prob_grid(:));
-
-       %pause;
-       %clf;
        
    end
+   
+          
+    Nk = sum(sum(ambi_map));
+    prob_mat = (ambi_map)./(Nk);
+    mk = mean(mean(prob_mat));
 
-   roi = ambi_map>max(max(ambi_map))*0.75;
+   %roi = ambi_map>max(max(ambi_map))*0.9;
    if plotmap
        figure('units','normalized','outerposition',[0 0 1 1])
        xlim([gridlist(1) gridlist(end)])
        ylim([gridlist(1) gridlist(end)])
-       imagesc(gridlist,gridlist,10*log10(ambi_map))
+       imagesc(gridlist,gridlist,10*log10(prob_mat./mk))
        xlabel('X Position (m)')
        ylabel('Y Position (m)')
        set(gca,'fontsize',20)
        set(gca,'YDir','normal')
        colormap jet
        colorbar
-       caxis([-5 10]);
+       caxis([-2 15]);
        hold on
    end
    
-   if max(any(roi))>0
-       stats = regionprops(roi);
-       x_estlist = zeros(size(stats,1),1);
-       y_estlist = x_estlist;
-       for s = 1:size(stats,1)
-           centroid = stats(s).Centroid;
-           bbox = stats(s).BoundingBox;
-           bxmin = gridlist(ceil(bbox(1)));
-           bymin = gridlist(ceil(bbox(2)));
-           x_est = gridlist(round(centroid(1)));
-           y_est = gridlist(round(centroid(2)));
-           x_estlist(s) = x_est;
-           y_estlist(s) = y_est;
-
-           if plotmap
-               plot(x_est,y_est,'k*')
-               rectangle('position',[bxmin bymin bbox(3)-1 bbox(4)-1])
-           end
-       end
-   else
-       x_estlist = NaN;
-       y_estlist = NaN;
-   end
+    [yestind,xestind] = find(ambi_map == max(ambi_map(:)));
+    x_estlist = gridlist(xestind);
+    y_estlist = gridlist(yestind);
+    
+%    if max(any(roi))>0
+%        stats = regionprops(roi);
+%        x_estlist = zeros(size(stats,1),1);
+%        y_estlist = x_estlist;
+%        for s = 1:size(stats,1)
+%            centroid = stats(s).Centroid;
+%            bbox = stats(s).BoundingBox;
+%            bxmin = gridlist(ceil(bbox(1)));
+%            bymin = gridlist(ceil(bbox(2)));
+%            x_est = gridlist(round(centroid(1)));
+%            y_est = gridlist(round(centroid(2)));
+%            x_estlist(s) = x_est;
+%            y_estlist(s) = y_est;
+% 
+% %            if plotmap
+% %                plot(x_est,y_est,'k*','MarkerSize',8,'linewidth',1.5)
+% %                rectangle('position',[bxmin bymin bbox(3)-1 bbox(4)-1])
+% %            end
+%        end
+%    else
+%        x_estlist = NaN;
+%        y_estlist = NaN;
+%    end
        
 end

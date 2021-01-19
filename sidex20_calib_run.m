@@ -218,27 +218,37 @@ plot(epochtime_event,zeros(length(epochtime_event),1),'*')
 
 %% Event detection in z-axis
 
-mult_vec = zeros(length(t),1);
+% mult_vec = zeros(length(t),1);
+% 
+% for ee = 1:4:length(epochtime_event)
+%     [~,ind1] = min(abs(t-epochtime_event(ee)));
+%     [~,ind2] = min(abs(t-epochtime_event(ee+3)));
+%     
+%    mult_vec(ind1-FS:ind2+4*FS) = 1;
+% end
+%     
+% mult_vec_mat = repmat(mult_vec,1,4);  
+% 
+% zdata = (mult_vec_mat.*data(:,[1 4 7 10])).';
+% xdata = (mult_vec_mat.*data(:,[2 5 8 11])).';
+% ydata = (mult_vec_mat.*data(:,[3 6 9 12])).';
 
-for ee = 1:4:length(epochtime_event)
-    [~,ind1] = min(abs(t-epochtime_event(ee)));
-    [~,ind2] = min(abs(t-epochtime_event(ee+3)));
-    
-   mult_vec(ind1-FS:ind2+4*FS) = 1;
-end
-    
-mult_vec_mat = repmat(mult_vec,1,4);  
+zdata = data(:,[1 4 7 10]).';
+xdata = data(:,[2 5 8 11]).';
+ydata = data(:,[3 6 9 12]).';
 
-zdata = (mult_vec_mat.*data(:,[1 4 7 10])).';
-xdata = (mult_vec_mat.*data(:,[2 5 8 11])).';
-ydata = (mult_vec_mat.*data(:,[3 6 9 12])).';
+%weight_thres_list = [0 1 2 3];
+%TPRlist = [];
+%MDRlist = [];
 
-lta_size_s = 5; %LTA window in seconds
-sta_size_s = 0.2; %STA window in seconds
+for ll = 1%:length(weight_thres_list)
+
+lta_size_s = 3; %LTA window in seconds
+sta_size_s = 0.25; %STA window in seconds
 pem_s = 0.5;
 pet_s = 0.5;
-ratio_thres = 2;
-weight_thres = 0;
+ratio_thres = 1.5;
+weight_thres = 1;
 
 znum_chn = size(zdata,1);
 [zstart_sample,zend_sample,zchn_triggered_mat,~,~,~] = sl_eSelect(zdata,FS,lta_size_s,sta_size_s,pem_s,pet_s,ratio_thres,weight_thres);
@@ -246,23 +256,120 @@ znum_chn = size(zdata,1);
 found_events_lat = zeros(length(zstart_sample),1);
 found_events_long = zeros(length(zstart_sample),1);
 found_events_t = zeros(length(zstart_sample),1);
+found_events_te = zeros(length(zstart_sample),1);
+epochtime_event_track = epochtime_event;
+zstart_sample_track = zstart_sample;
+en_list = [];
+inc = 1;
 
 for en = 1:length(zstart_sample)
    tevent = t(zstart_sample(en));
    
-   [~,loct] = min(abs(tevent-epochtime_event));
-   found_events_lat(en) = lat_event(loct);
-   found_events_long(en) = long_event(loct);
-   found_events_t(en) = epochtime_event(loct);
+   [val,ind] = min(abs(tevent-epochtime_event_track));
+   
+   if val < 1.5
+    epochtime_event_track(ind) = [];
+    en_list(inc) = en;
+    inc = inc+1;
+   end
+       
+   tevente = t(zend_sample(en));
+   
+   %[~,locte] = min(abs(tevente-epochtime_event));
+%    found_events_lat(en) = lat_event(loct);
+%    found_events_long(en) = long_event(loct);
+   found_events_t(en) = tevent; %epochtime_event(loct);
+   found_events_te(en) = tevente; %epochtime_event(locte);
     
 end
 
-[found_events_x,found_events_y] = ll2xy(found_events_lat,found_events_long,geophone_GPS(1,1),geophone_GPS(1,2));
+zstart_sample_track(en_list) = [];
+TPR = (length(epochtime_event)-length(epochtime_event_track))*100/length(zstart_sample);
+FPR = length(zstart_sample_track)*100/length(zstart_sample);
+MDR = length(epochtime_event_track)*100/length(epochtime_event);
+
+disp(['True Positive Rate: ' num2str(TPR)])
+disp(['False Positive Rate: ' num2str(FPR)])
+disp(['Missed Detection Rate: ' num2str(MDR)])
+
+%TPRlist(ll) = TPR;
+%MDRlist(ll) = MDR;
+
+end
+
+figure %(for geophone 1)
+%plot(t,data(:,1))
+plot(epochtime_event,zeros(length(epochtime_event),1),'o')
+hold on
+plot(found_events_t,zeros(length(found_events_t),1),'*')
+plot(found_events_te,zeros(length(found_events_te),1),'x')
+% 
+% [found_events_x,found_events_y] = ll2xy(found_events_lat,found_events_long,geophone_GPS(1,1),geophone_GPS(1,2));
+% 
+% figure
+% plot(xpos,ypos,'ro')
+% hold on
+% plot(found_events_x,found_events_y,'k*')
+
+%% Plot sensitivity of detection algorithm
 
 figure
-plot(xpos,ypos,'ro')
+subplot(2,2,1)
+load('lta_size.mat')
+plot(lta_size_list,TPRlist,'ro','MarkerSize',8,'MarkerFaceColor','r')
 hold on
-plot(found_events_x,found_events_y,'k*')
+plot(lta_size_list,MDRlist,'b^','MarkerSize',8,'MarkerFaceColor','b')
+plot(lta_size_list,TPRlist,'k','linewidth',1.5);
+plot(lta_size_list,MDRlist,'k','linewidth',1.5);
+grid on
+set(gca,'fontsize',20)
+ylabel('Percentage (%)')
+xlabel('Long Time Window Size')
+xlim([lta_size_list(1) lta_size_list(end)])
+legend('True Positive Rate','Missed Detection Rate')
+
+subplot(2,2,2)
+load('sta_size.mat')
+plot(sta_size_list,TPRlist,'ro','MarkerSize',8,'MarkerFaceColor','r')
+hold on
+plot(sta_size_list,MDRlist,'b^','MarkerSize',8,'MarkerFaceColor','b')
+plot(sta_size_list,TPRlist,'k','linewidth',1.5);
+plot(sta_size_list,MDRlist,'k','linewidth',1.5);
+grid on
+set(gca,'fontsize',20)
+ylabel('Percentage (%)')
+xlabel('Short Time Window Size')
+xlim([sta_size_list(1) sta_size_list(end)])
+legend('True Positive Rate','Missed Detection Rate')
+
+subplot(2,2,3)
+load('ratio_thres.mat')
+plot(ratio_thres_list,TPRlist,'ro','MarkerSize',8,'MarkerFaceColor','r')
+hold on
+plot(ratio_thres_list,MDRlist,'b^','MarkerSize',8,'MarkerFaceColor','b')
+plot(ratio_thres_list,TPRlist,'k','linewidth',1.5);
+plot(ratio_thres_list,MDRlist,'k','linewidth',1.5);
+grid on
+set(gca,'fontsize',20)
+ylabel('Percentage (%)')
+xlabel('Ratio Threshold')
+xlim([ratio_thres_list(1) ratio_thres_list(end)])
+legend('True Positive Rate','Missed Detection Rate')
+
+subplot(2,2,4)
+load('weight_thres.mat')
+plot(weight_thres_list,TPRlist,'ro','MarkerSize',8,'MarkerFaceColor','r')
+hold on
+plot(weight_thres_list,MDRlist,'b^','MarkerSize',8,'MarkerFaceColor','b')
+plot(weight_thres_list,TPRlist,'k','linewidth',1.5);
+plot(weight_thres_list,MDRlist,'k','linewidth',1.5);
+grid on
+set(gca,'fontsize',20)
+ylabel('Percentage (%)')
+xlabel('Channel Detection Threshold')
+xlim([weight_thres_list(1) weight_thres_list(end)])
+legend('True Positive Rate','Missed Detection Rate')
+
 
     
 %% Plot detected events if desired

@@ -2,13 +2,13 @@
 %% set directory
 clear
 clc
-prefix = '/Volumes/RUIC_Backup/SIDEX20_data/sidex_2020-01-28/';
+prefix = '/Volumes/RUIC_Backup/SIDEX20_data/sidex_2020-01-27/';
 directory = dir([prefix 'Sidex*.txt']);
 date = directory(5).name(7:14); % records the date that the data was collected
 data = [];
 FS = 1000;
 good_chn = [1:16]; %choose chns to be plotted
-first_file = 916; %choose the first file to be read
+first_file = 1025; %choose the first file to be read
 cycle = 0;
 
 %% plot a portion of the directory
