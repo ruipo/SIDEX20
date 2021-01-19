@@ -5,18 +5,18 @@ directory = dir('/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_wi
 
 %% Read in stand-alone geophone data
 
-for dd = 1
+for dd = 2
 Table = readtable(['/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/transients_with_4_nodes_TD/' directory(dd).name], 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
 %Table = readtable(['/Volumes/RUIC_Backup/SIDEX20_data/SIDEx_node_data/bad_data/' directory(dd).name], 'HeaderLines',1,'Format','%D%f%f%f%f%f%f%f%f%f%f%f%f');
 
 %node_start = 1; %dd
 %node_trim = 1; %dd
 
-node_start = 1; %dd1
-node_trim = 25*4096; %dd1
+%node_start = 1; %dd1
+%node_trim = 25*4096; %dd1
 
-%node_start = 1; %dd2
-%node_trim = 5*4095; %dd2
+node_start = 1; %dd2
+node_trim = 5*4095; %dd2
 
 %node_start = 1; %dd3
 %node_trim = 25*4096; %dd3
@@ -216,7 +216,7 @@ grid on
 hold on
 
 %try
-    [loc_est,c_est,err,tdoa_mat] = loc_est_ambi(zdatafilt,xdatafilt,ydatafilt,xpos,ypos,1,length(zdatafilt),FS_node,c_range,N,plotting,calib_act,noise_mat,plotmap,1);
+    [loc_est,c_est,err,tdoa_mat] = loc_est_ambi(zdatafilt,xdatafilt,ydatafilt,xpos,ypos,1,length(zdatafilt),FS_node,c_range,N,plotting,calib_act,noise_mat,plotmap,dd);
 %catch
 %    disp('Skipping this...')
 %end
@@ -245,8 +245,12 @@ xpos(g) = xtemp;
 ypos(g) = ytemp;
 end
 
-x_est = [129 -195 305 138 49 -159 241 128 365 227 1238 356 354];
-y_est = [-193 -327 -74 391 241 374 -43 -192 -62 168 -275 -53 -54];
+%x_est = [129 -195 305 138 49 -159 241 128 365 227 1238 356 354];
+%y_est = [-193 -327 -74 391 241 374 -43 -192 -62 168 -275 -53 -54];
+
+%ambi_max method
+x_est = [402 ];
+y_est = [-246 ];
 
 figure
 plot(xpos,ypos,'ro');

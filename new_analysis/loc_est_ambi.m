@@ -331,7 +331,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
 %         disp(['x estimate = ', num2str(loc_est(1)), '; y estimate = ',num2str(loc_est(2)) '.']);
 %         disp(['propagation speend estimate = ', num2str(c0), 'm/s.']);
 %         disp(['estimate error = ', num2str(error(ccount)), '.']);
-        saveas(gcf,[path,'/real_data/loc_est_results_ambimax_nodes_only/' num2str(ploti) '.png']);
+        saveas(gcf,[path,'real_data/loc_est_results_ambimax_node_only/' num2str(ploti) '.png']);
         %close all
     end
 % % STOP EARLY TO SAVE COMPUTATION TIME    
