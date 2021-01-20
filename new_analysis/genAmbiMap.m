@@ -1,19 +1,18 @@
 function [x_estlist,y_estlist,prob_mat] = genAmbiMap(gridlist, x_mat, y_mat, SNR_list, ang_list, plotmap)
      
    ambi_map = zeros(length(gridlist));
-   %skip = 0;
     
    for n = 1:size(x_mat,1)
-       n
+       %n
        sigma = -50/(1+20*exp(-0.16*SNR_list(n)))+53;
        sigma = round(sigma);
-       disp(sigma)
+       %disp(sigma)
        if sigma > 50
-           %skip = skip+1;
            %continue
            sigma = 50;
        end
        %sigma 
+       
        % initialize interp_grid matrix
        interp_grid = zeros(length(gridlist));
        
@@ -32,7 +31,6 @@ function [x_estlist,y_estlist,prob_mat] = genAmbiMap(gridlist, x_mat, y_mat, SNR
                [~,ent2] = min(abs(gridlist-ygridlist(ent)));
                %interp_grid(:,ent1) = 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2));
                interp_grid = max(interp_grid, customGauss([length(gridlist) length(gridlist)], sigma, sigma, 0, 0, -1/(1+10*exp(-0.077*sigma))+1, [ent2-floor(length(gridlist)/2) ent1-floor(length(gridlist)/2)]));
-
            end
            
        % Hyperbola has no repeated y values  
@@ -48,8 +46,6 @@ function [x_estlist,y_estlist,prob_mat] = genAmbiMap(gridlist, x_mat, y_mat, SNR
                [~,ent2] = min(abs(gridlist-xgridlist(ent)));
                %interp_grid(ent1,:) = 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2));
                interp_grid = max(interp_grid, customGauss([length(gridlist) length(gridlist)], sigma, sigma, 0, 0, -1/(1+10*exp(-0.077*sigma))+1, [ent1-floor(length(gridlist)/2) ent2-floor(length(gridlist)/2)]));
-
-
            end
        
        % Hyperbola has repeated x or y values    
@@ -80,8 +76,6 @@ function [x_estlist,y_estlist,prob_mat] = genAmbiMap(gridlist, x_mat, y_mat, SNR
                    % use max of interp_grid and new values becuase sometimes the new values close to zero will over write older values otherwise
                    %interp_grid(:,ent1) = max(interp_grid(:,ent1).', 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2)));
                    interp_grid = max(interp_grid, customGauss([length(gridlist) length(gridlist)], sigma, sigma, 0, 0, -1/(1+10*exp(-0.077*sigma))+1, [ent2-floor(length(gridlist)/2) ent1-floor(length(gridlist)/2)]));
-
-
                end
                
            % if rotated hyperbola has no repeated y values
@@ -101,8 +95,6 @@ function [x_estlist,y_estlist,prob_mat] = genAmbiMap(gridlist, x_mat, y_mat, SNR
                    [~,ent2] = min(abs(gridlist-xgridlist(ent)));
                    %interp_grid(ent1,:) = max(interp_grid(ent1,:), 1/(sigma*sqrt(2*pi))*exp(-0.5*((([1:1:length(gridlist)]-ent2)./sigma).^2)));
                    interp_grid = max(interp_grid, customGauss([length(gridlist) length(gridlist)], sigma, sigma, 0, 0, -1/(1+10*exp(-0.077*sigma))+1, [ent1-floor(length(gridlist)/2) ent2-floor(length(gridlist)/2)]));
-
-
                end
            end
        end

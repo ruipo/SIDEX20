@@ -4,7 +4,7 @@
 % Last updated: 02/28/2020
 %-----------------------------%
 
-function [loc_est,c_est,err,tdoa_mat] = loc_est_ambi(zdata,xdata,ydata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act,noise_mat,plotmap,ploti)
+function [loc_est,c_est,err,tdoa_mat] = loc_est_ambi(zdata,xdata,ydata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act,noise_mat,plotmap,ploti,ambimap)
 % Estimates the location of events recorded on the z-axis channels. 
 % Input data from x/y axis as zdata if want to estimate location of event on those axes. 
 
@@ -224,86 +224,80 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     
 
    %-------------------------------------------------------------------------------------------------------------------------------------------------%
-   % Generate ambiguity surface
+   % Generate ambiguity surface and estimate location
    
+   if ambimap
    gs = -1000;
    ge = 1000;
    dg = 1;
    gridlist = gs:dg:ge;
    
    [x_est,y_est,~] = genAmbiMap(gridlist, x_mat, y_mat, SNR_list, ang_list, plotmap);
-%    errortry = zeros(length(x_estlist),1);
-% 
-%     for ll = 1:length(x_estlist)
-%         xtry = x_estlist(ll);
-%         ytry = y_estlist(ll);
-%         tdoa_sim_mat = tdoa_sim(xtry,ytry,c0,xpos,ypos); %calculated the tdoa matrix as if the event occurred at the estimated location with the assumed propagation speed. 
-%         errortry(ll) = sqrt(sum(sum((tdoa_mat - tdoa_sim_mat).^2))); %calculate the error of the simulated tdoa matrix and the actual tdoa matrix. 
-%     end
-% 
-%     [~,erloc] = min(errortry);
-%     x_est = x_estlist(erloc);
-%     y_est = y_estlist(erloc);
+   
+   loc_est = [x_est;y_est];
+  
+   
+    %------------------------------------------------------------------------------------------------------------------------------------------------%
+    %calculate the intersections of all hyperbolas and MPD lines
 
-    loc_est = [x_est;y_est];
-%    %------------------------------------------------------------------------------------------------------------------------------------------------%
-%    %calculate the intersections of all hyperbolas and circles
-%     x_intlist = [];
-%     y_intlist = [];
-%     
-%     %for each receiver pair
-%     for n = 1:size(x_mat,1)-1
-%         for k = n+1:size(x_mat,1) 
-% 
-%             [x_int,y_int] = intersections(x_mat(n,:),y_mat(n,:),x_mat(k,:),y_mat(k,:),true); %find the intersections of each hyperbola with each other hyperbola.
-%             
-%             if length(x_int) > 10
-%                 x_int = [];
-%                 y_int = [];
-%             end
-%             
-%             %record the coordinates of all intersection points
-%             x_intlist = [x_intlist;x_int]; 
-%             y_intlist = [y_intlist;y_int];
-%             
-%         end
-%     end
-%     
-%     %------------------------------------------------------------------------------------------------------------------------------------------------%
-%     %estimate event location based on the intersection locations
-%     if ~isempty(x_intlist) && ~isempty(y_intlist)
-%         
-%         figure
-%         x_hist = histfit(real(x_intlist((x_intlist<350 & x_intlist>-350))),round(length(x_intlist)/2),'kernel'); %fit a kernel distribution to histogram of x-intersection values
-%         [xpeaks,xloclist] = findpeaks(x_hist(2).YData); %find location of the peaks of the kernel distribution
-%         [~,lx] = max(xpeaks); %x-estimate is the location of tallest peak
-%         locx = xloclist(lx);
-%         
-%         figure
-%         y_hist = histfit(real(y_intlist((y_intlist<350 & y_intlist>-350))),round(length(y_intlist)/2),'kernel'); %fit a kernel distribution to histogram of y-intersection values
-%         [ypeaks,yloclist] = findpeaks(y_hist(2).YData); %find location of the peaks of the kernel distribution
-%         [~,ly] = max(ypeaks);%y-estimate is the location of the tallest peak
-%         locy = yloclist(ly);
-%             
-%         loc_est = [x_hist(2).XData(locx); y_hist(2).XData(locy)];
-%             
-%         close
-%         close
-%     
-%     else
-%         
-%         loc_est = [nan;nan];
-%     end
-%     
-%     
-%     if isempty(xloclist) %if no peaks in kernel function is found, use mode method for x,y estimates
-%             loc_est = [mode(round(x_intlist,3)) loc_est];
-%     end
-%         
-%     if isempty(yloclist)
-%             loc_est = [loc_est mode(round(y_intlist,1))];
-%     end
-%     
+    else
+    x_intlist = [];
+    y_intlist = [];
+    
+    %for each receiver pair
+    for n = 1:size(x_mat,1)-1
+        for k = n+1:size(x_mat,1) 
+
+            [x_int,y_int] = intersections(x_mat(n,:),y_mat(n,:),x_mat(k,:),y_mat(k,:),true); %find the intersections of each hyperbola with each other hyperbola.
+            
+            if length(x_int) > 10
+                x_int = [];
+                y_int = [];
+            end
+            
+            %record the coordinates of all intersection points
+            x_intlist = [x_intlist;x_int]; 
+            y_intlist = [y_intlist;y_int];
+            
+        end
+    end
+    
+    %------------------------------------------------------------------------------------------------------------------------------------------------%
+    %estimate event location based on the intersection locations
+    if ~isempty(x_intlist) && ~isempty(y_intlist)
+        
+        figure
+        x_hist = histfit(real(x_intlist((x_intlist<350 & x_intlist>-350))),round(length(x_intlist)/2),'kernel'); %fit a kernel distribution to histogram of x-intersection values
+        [xpeaks,xloclist] = findpeaks(x_hist(2).YData); %find location of the peaks of the kernel distribution
+        [~,lx] = max(xpeaks); %x-estimate is the location of tallest peak
+        locx = xloclist(lx);
+        
+        figure
+        y_hist = histfit(real(y_intlist((y_intlist<350 & y_intlist>-350))),round(length(y_intlist)/2),'kernel'); %fit a kernel distribution to histogram of y-intersection values
+        [ypeaks,yloclist] = findpeaks(y_hist(2).YData); %find location of the peaks of the kernel distribution
+        [~,ly] = max(ypeaks);%y-estimate is the location of the tallest peak
+        locy = yloclist(ly);
+            
+        loc_est = [x_hist(2).XData(locx); y_hist(2).XData(locy)];
+            
+        close
+        close
+    
+    else
+        
+        loc_est = [nan;nan];
+    end
+    
+    
+    if isempty(xloclist) %if no peaks in kernel function is found, use mode method for x,y estimates
+            loc_est = [mode(round(x_intlist,3)) loc_est];
+    end
+        
+    if isempty(yloclist)
+            loc_est = [loc_est mode(round(y_intlist,1))];
+    end
+  
+   end
     %------------------------------------------------------------------------------------------------------------------------------------------------%
     %calculates the error between estimation and actual event locations
     %selects the propagation speed/estimation location with the lowest error
@@ -316,7 +310,7 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
     if plotmap ~= 0
         path = '/Users/Rui/Documents/Graduate/Research/SIDEX/SIDEX20/new_analysis/';
         figure(gcf);
-        %plot(calib_act(1),calib_act(2),'k*','MarkerSize',8,'linewidth',1.5);
+        plot(calib_act(1),calib_act(2),'k*','MarkerSize',8,'linewidth',1.5);
         plot(loc_est(1),loc_est(2),'c*','MarkerSize',8,'linewidth',1.5);
         plot(xpos,ypos,'k.', 'MarkerSize',30);
         hold off
@@ -327,17 +321,10 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
         xlim([-1000 1000]);
         ylim([-1000 1000]);
         legend('Estimated Location','Cabled Geophones')
-        
-%         disp(['x estimate = ', num2str(loc_est(1)), '; y estimate = ',num2str(loc_est(2)) '.']);
-%         disp(['propagation speend estimate = ', num2str(c0), 'm/s.']);
-%         disp(['estimate error = ', num2str(error(ccount)), '.']);
-        saveas(gcf,[path,'real_data/loc_est_results_ambimax_node_only/' num2str(ploti) '.png']);
+
+        %saveas(gcf,[path,'real_data/loc_est_results_ambimax_node_only/' num2str(ploti) '.png']);
         %close all
     end
-% % STOP EARLY TO SAVE COMPUTATION TIME    
-%     if error(ccount) < 0.1
-%         break
-%     end
     
 end
 

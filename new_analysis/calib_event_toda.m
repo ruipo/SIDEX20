@@ -654,7 +654,7 @@ end
 geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
 
 FS = 1000;
-%c_range = 242;
+c_range = 242;
 xrange = [-350 350];
 yrange = [-150 350];
 ds = 1;
@@ -666,7 +666,7 @@ error_mat = zeros(length(event_inds),1);
 
 for i = 1%:188
     i 
-    c_range = c_est_use(i);
+    %c_range = c_est_use(i);
     ss = event_inds(i,1);
     es = event_inds(i,2);
     if isnan(ss) || isnan(es)
@@ -699,11 +699,12 @@ end
 geophone_loc = [24.36 -36.64;-37.71 11.51;21.05 25.30;-7.71 -0.167];
 
 FS = 1000;
-%c_range = 242;
+c_range = 242;
 N = 1000;
 plotting = 0;
 plotmap = 1;
 noise_mat = [znoise; xnoise; ynoise];
+ambimap = 1;
 
 figure
 plot(geophone_loc(:,1),geophone_loc(:,2),'b.', 'MarkerSize',30);
@@ -722,9 +723,9 @@ pos_est_mat = zeros(2,length(event_inds));
 c_est_mat = zeros(length(event_inds),1);
 error_mat = zeros(length(event_inds),1);
 
-for i = 1:188
+for i = 1%:188
     i 
-    c_range = c_est_use(i);
+    %c_range = c_est_use(i);
     ss = event_inds(i,1);
     es = event_inds(i,2);
     if isnan(ss) || isnan(es)
@@ -735,11 +736,11 @@ for i = 1:188
         [eventx, eventy]= ll2xy(lat_event(i),long_event(i),mean(geophone_GPS(:,1)),mean(geophone_GPS(:,2)));
         calib_act = [eventx eventy];
 
-        %try
-            [loc_est,c_est,err,~] = loc_est_ambi(zevent,xevent,yevent,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act,noise_mat,plotmap,i);
-        %catch
-        %    disp('Skipping this...')
-        %end
+        try
+            [loc_est,c_est,err,~] = loc_est_ambi(zevent,xevent,yevent,geophone_loc(:,1),geophone_loc(:,2),ss,es,FS,c_range,N,plotting,calib_act,noise_mat,plotmap,i,ambimap);
+        catch
+            disp('Skipping this...')
+        end
 
         pos_est_mat(:,i) = loc_est;
         c_est_mat(i) = c_est;
@@ -849,17 +850,24 @@ for i = 1:188
     distfc(i) = sqrt((eventx).^2 + (eventy).^2);
 end
 figure
-%semilogy(distfc,error_mat,'b.','MarkerSize',10)
-%hold on
-semilogy(distfc,error_mat_tdoaMatch,'r.','MarkerSize',15)
+semilogy(distfc,error_mat,'c^','MarkerSize',12,'MarkerFaceColor','c')
+hold on
+semilogy(distfc,error_mat_ambimax,'bp','MarkerSize',12,'MarkerFaceColor','b')
+hold on
+semilogy(distfc,error_mat_tdoaMatch,'r.','MarkerSize',20)
 grid on
 set(gca,'fontsize',20)
-hold on
+%hold on
 % f=fit(distfc(~isnan(error_mat)),error_mat(~isnan(error_mat)),'exp2');
 % plot(f)
 xlabel('Distance from Center Geophone (m)')
 ylabel('Error in Location Estimation (m)')
-title('Estimation Error vs. Distance from Center Geophone')
+ylim([0.1 500])
+plot([0 300],[nanmean(error_mat) nanmean(error_mat)],'c','linewidth',1.5)
+plot([0 300],[nanmean(error_mat_ambimax) nanmean(error_mat_ambimax)],'b--','linewidth',1.5)
+plot([0 300],[nanmean(error_mat_tdoaMatch) nanmean(error_mat_tdoaMatch)],'r-.','linewidth',1.5)
+legend('MPD + Hyperbola Intersections Approach','MPD + Hyperbola Map Approach','TDOA Matching Approach')
+%title('Estimation Error vs. Distance from Center Geophone')
 
 %% Group Velocity Estimation
 

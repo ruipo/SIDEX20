@@ -4,7 +4,7 @@
 % Last updated: 02/28/2020
 %-----------------------------%
 
-function [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zdata,xdata,ydata,zdatauf,xdatauf,ydatauf,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act)
+function [loc_est,c_est,err,tdoa_mat] = loc_est_calib(zdata,xdata,ydata,xpos,ypos,start_sample,end_sample,FS,clist,N,plotting,calib_act)
 % Estimates the location of events recorded on the z-axis channels. 
 % Input data from x/y axis as zdata if want to estimate location of event on those axes. 
 

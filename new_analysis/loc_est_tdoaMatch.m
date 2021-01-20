@@ -50,8 +50,8 @@ for ccount = 1:length(clist) %loop throught list of propagation speeds
 
         xlabel('X Position (m)')
         ylabel('Y Position (m)')
-        xlim([-350 350]);
-        ylim([-150 350]);
+        xlim([-1000 1000]);
+        ylim([-1000 1000]);
         set(gca,'YDir','normal');
         %pause
 
@@ -71,15 +71,15 @@ loc_est = loc_estlist(:,eloc);
 if plotting ~= 0
     figure(gcf)
     path = '/Users/Rui/Documents/Graduate/Research/SIDEX/SIDEX20/new_analysis/';        
-    plot(x_act, y_act,'k*','MarkerSize',8,'linewidth',1.5);
+    %plot(x_act, y_act,'k*','MarkerSize',8,'linewidth',1.5);
     plot(loc_est(1), loc_est(2),'m*','MarkerSize',8,'linewidth',1.5);
     plot(xpos,ypos,'k.', 'MarkerSize',30);
     caxis([-2 10]);
-    legend('True Location','Estimated Location','Cabled Geophones')
+    legend('Estimated Location','Cabled Geophones')
     set(gca,'fontsize',20);
     title(['Propagation Speed = ' num2str(c0) ' m/s']);
-    saveas(gcf,[path,'loc_est_tdoaMatch/' num2str(ploti) '.png']);
-    close all
+    %saveas(gcf,[path,'real_data/loc_est_results_tdoaMatch_node_only/' num2str(ploti) '.png']);
+    %close all
 end
 
 
